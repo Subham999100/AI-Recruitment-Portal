@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans antialiased text-dark-900 bg-[#F7F9FC];
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-premium;
+  }
+  
+  .glass-panel-heavy {
+    @apply bg-white/90 backdrop-blur-2xl border border-white/50 shadow-premium;
+  }
+}
+
+@layer utilities {
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .transform-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  .rotate-x-10 {
+    transform: rotateX(10deg);
+  }
+  .rotate-y-10 {
+    transform: rotateY(10deg);
+  }
+  .rotate-3d-idle {
+    transform: rotateX(5deg) rotateY(-5deg) rotateZ(2deg);
+  }
+  .rotate-3d-hover {
+    transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) translateZ(20px);
+  }
+}
