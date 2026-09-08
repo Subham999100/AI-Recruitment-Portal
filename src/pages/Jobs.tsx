@@ -18,11 +18,20 @@ import {
   Layers, 
   ArrowRight,
   UserCheck,
-  CheckCircle2
+  CheckCircle2,
+  Key,
+  Cpu,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Trash2,
+  ShieldCheck,
+  CheckCircle
 } from 'lucide-react';
 import { mockJobs, sampleCandidatePresets } from '../services/mockData';
 import { candidateService } from '../services/candidateService';
-import { interviewService } from '../services/interviewService';
+import { interviewService, DEFAULT_GROQ_MODEL } from '../services/interviewService';
 import { Job, Candidate, InterviewKit, InterviewQuestion } from '../types';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
@@ -32,6 +41,16 @@ export default function Jobs() {
   const [activeTab, setActiveTab] = useState<'jobs' | 'generator'>('jobs');
   const [jobs] = useState<Job[]>(mockJobs);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+
+  // Groq API Settings State
+  const [groqKey, setGroqKey] = useState<string>('');
+  const [inputGroqKey, setInputGroqKey] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_GROQ_MODEL);
+  const [showKeyDrawer, setShowKeyDrawer] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [keySavedNotification, setKeySavedNotification] = useState<string | null>(null);
+  const [backendConfigured, setBackendConfigured] = useState<boolean>(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   // Generator form state
   const [selectedJobId, setSelectedJobId] = useState<number | 'custom'>(1);
@@ -54,7 +73,25 @@ export default function Jobs() {
   const [copiedAll, setCopiedAll] = useState(false);
 
   useEffect(() => {
-    // Load existing candidates if any
+    // 1. Check stored Groq API Key and Model
+    const storedKey = interviewService.getStoredApiKey();
+    if (storedKey) {
+      setGroqKey(storedKey);
+      setInputGroqKey(storedKey);
+    }
+    const storedModel = interviewService.getStoredModel();
+    if (storedModel) {
+      setSelectedModel(storedModel);
+    }
+
+    // 2. Check Backend Groq Status
+    interviewService.checkBackendGroqStatus().then(status => {
+      if (status.configured) {
+        setBackendConfigured(true);
+      }
+    }).catch(() => {});
+
+    // 3. Load existing candidates if any
     candidateService.getCandidates().then(res => {
       setCandidates(res.data);
       if (res.data.length > 0) {
@@ -63,13 +100,37 @@ export default function Jobs() {
         setCandidateExperience(res.data[0].experience);
         setCandidateResumeText(res.data[0].summary || `${res.data[0].name} has ${res.data[0].experience} years of experience in ${res.data[0].skills.join(', ')}.`);
       } else {
-        // Use preset
         applyPreset(0);
       }
     }).catch(() => {
       applyPreset(0);
     });
   }, []);
+
+  const handleSaveGroqKey = () => {
+    const trimmed = inputGroqKey.trim();
+    if (trimmed) {
+      interviewService.setStoredApiKey(trimmed);
+      setGroqKey(trimmed);
+      setKeySavedNotification('Groq API Key saved securely in your browser!');
+      setTimeout(() => setKeySavedNotification(null), 3000);
+      setShowKeyDrawer(false);
+      setGenerationError(null);
+    }
+  };
+
+  const handleClearGroqKey = () => {
+    interviewService.clearStoredApiKey();
+    setGroqKey('');
+    setInputGroqKey('');
+    setKeySavedNotification('Groq API Key removed.');
+    setTimeout(() => setKeySavedNotification(null), 3000);
+  };
+
+  const handleModelChange = (model: string) => {
+    setSelectedModel(model);
+    interviewService.setStoredModel(model);
+  };
 
   const applyPreset = (index: number) => {
     const preset = sampleCandidatePresets[index];
@@ -127,9 +188,10 @@ export default function Jobs() {
     };
   };
 
-  const handleGenerateQuestions = async () => {
+  const handleGenerateQuestions = async (overrideApiKey?: string) => {
     setIsGenerating(true);
     setGenerationStep(1);
+    setGenerationError(null);
 
     const job = getCurrentJobDetails();
     const candidate = getCurrentCandidateDetails();
@@ -144,22 +206,24 @@ export default function Jobs() {
         jobDescription: job.description,
         candidateName: candidate.name,
         candidateResume: candidate.resume,
-        candidateExperience: candidateExperience
+        candidateExperience: candidateExperience,
+        apiKey: overrideApiKey ?? (groqKey || undefined),
+        model: selectedModel
       });
 
       setGeneratedKit(kit);
-    } catch (err) {
+      setTimeout(() => {
+        const el = document.getElementById('interview-results-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
+    } catch (err: any) {
       console.error(err);
+      setGenerationError(err?.message || 'Error occurred while generating with Groq API. Check your API key or use calibrated mode.');
     } finally {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
       setIsGenerating(false);
-      // Auto-scroll to results
-      setTimeout(() => {
-        const el = document.getElementById('interview-results-section');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
     }
   };
 
@@ -172,6 +236,7 @@ export default function Jobs() {
   const handleCopyAll = () => {
     if (!generatedKit) return;
     const content = `INTERVIEW QUESTIONS FOR ${generatedKit.candidateName.toUpperCase()} - ${generatedKit.jobTitle.toUpperCase()}
+Engine: ${generatedKit.source === 'groq-llm' ? `Groq LLM (${generatedKit.model || 'Llama 3.3'})` : 'Calibrated Algorithmic Model'}
 Experience: ${generatedKit.candidateExperience} Years
 Match Score: ${generatedKit.matchedScore}%
 Date: ${generatedKit.generatedAt}
@@ -203,6 +268,8 @@ Follow-up Probe: ${q.followUpProbe}
     return 'bg-amber-50 text-amber-700 border-amber-200';
   };
 
+  const isGroqActive = Boolean(groqKey || backendConfigured);
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
@@ -218,7 +285,7 @@ Follow-up Probe: ${q.followUpProbe}
             Jobs & AI Interview Kits
           </h1>
           <p className="text-gray-300 text-sm leading-relaxed">
-            Manage open positions and generate tailored interview questions calibrated directly against the candidate's resume, job description, and years of experience.
+            Manage open positions and generate tailored interview questions calibrated directly against the candidate's resume, job description, and years of experience using Groq's high-speed inference.
           </p>
         </div>
 
@@ -343,8 +410,201 @@ Follow-up Probe: ${q.followUpProbe}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-10"
+          className="space-y-8"
         >
+          {/* GROQ API CONFIGURATION BAR */}
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl border border-indigo-500/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -z-0 pointer-events-none" />
+
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 flex-shrink-0">
+                  <Cpu className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base text-white">Groq LPU Inference Engine</h3>
+                    {isGroqActive ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Connected ({selectedModel.split('-').slice(0, 3).join(' ')})
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold">
+                        <Key className="w-3 h-3" />
+                        Key Not Set (Algorithmic Fallback)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-300 mt-1 max-w-xl">
+                    Ultra-low latency question synthesis powered by Groq. Tailors technical, project, and leadership inquiries using candidate resume + JD + experience.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Button
+                  size="sm"
+                  onClick={() => setShowKeyDrawer(!showKeyDrawer)}
+                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 gap-2 text-xs font-semibold backdrop-blur-sm"
+                >
+                  <Key className="w-3.5 h-3.5 text-indigo-300" />
+                  <span>{showKeyDrawer ? 'Close Settings' : isGroqActive ? 'Configure Groq Key & Model' : 'Connect Groq API Key'}</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Notification alert */}
+            {keySavedNotification && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="mt-4 p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-200 text-xs flex items-center gap-2"
+              >
+                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>{keySavedNotification}</span>
+              </motion.div>
+            )}
+
+            {/* Expandable Configuration Drawer */}
+            <AnimatePresence>
+              {showKeyDrawer && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-6 pt-6 border-t border-white/10 space-y-4"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* API Key Input */}
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-xs font-semibold text-gray-200 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Key className="w-3.5 h-3.5 text-indigo-400" />
+                          Groq API Key (gsk_...)
+                        </span>
+                        <a
+                          href="https://console.groq.com/keys"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 underline"
+                        >
+                          Get Free Groq Key
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          value={inputGroqKey}
+                          onChange={(e) => setInputGroqKey(e.target.value)}
+                          className="w-full bg-black/40 border border-white/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-400 pr-24"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 text-xs flex items-center gap-1"
+                        >
+                          {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-gray-400">
+                        Keys are saved securely in your browser's local storage and used directly for inference.
+                      </p>
+                    </div>
+
+                    {/* Model Picker */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-gray-200 flex items-center gap-1.5">
+                        <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+                        Inference Model
+                      </label>
+                      <select
+                        value={selectedModel}
+                        onChange={(e) => handleModelChange(e.target.value)}
+                        className="w-full bg-black/40 border border-white/20 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-400"
+                      >
+                        <option value="llama-3.3-70b-versatile" className="bg-dark-900 text-white">
+                          Llama 3.3 70B Versatile (Recommended)
+                        </option>
+                        <option value="llama-3.1-8b-instant" className="bg-dark-900 text-white">
+                          Llama 3.1 8B Instant (Ultra Fast)
+                        </option>
+                        <option value="mixtral-8x7b-32768" className="bg-dark-900 text-white">
+                          Mixtral 8x7B (32k Context)
+                        </option>
+                      </select>
+                      <p className="text-[11px] text-gray-400">
+                        Llama 3.3 70B delivers the highest quality technical reasoning.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap items-center justify-between pt-2 border-t border-white/10 gap-3">
+                    <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                      <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                      <span>Ready for live generation on candidate profiles</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {groqKey && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleClearGroqKey}
+                          className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-1.5"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Clear Key</span>
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        onClick={handleSaveGroqKey}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-md gap-1.5"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Save Settings</span>
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Error Alert if generation failed */}
+          {generationError && (
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-rose-50 border border-rose-200 p-4 rounded-2xl flex items-start gap-3 text-rose-800 text-xs shadow-sm"
+            >
+              <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+              <div className="space-y-1 flex-1">
+                <strong className="font-semibold block text-sm">Groq Generation Encountered an Issue</strong>
+                <p>{generationError}</p>
+                <div className="pt-2 flex items-center gap-3">
+                  <button
+                    onClick={() => setShowKeyDrawer(true)}
+                    className="font-bold underline hover:text-rose-900"
+                  >
+                    Check / Update Groq Key
+                  </button>
+                  <span>•</span>
+                  <button
+                    onClick={() => handleGenerateQuestions('')}
+                    className="font-bold underline hover:text-rose-900"
+                  >
+                    Use Algorithmic Mode Instead
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Controls & Configuration Card */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
             <div className="p-6 md:p-8 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
@@ -592,18 +852,29 @@ Follow-up Probe: ${q.followUpProbe}
             <div className="p-6 bg-gradient-to-r from-gray-50 to-primary-50/30 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3 text-xs text-gray-500">
                 <Sparkles className="w-4 h-4 text-primary-600" />
-                <span>Calibrates depth for <strong>{candidateExperience} years experience</strong> against target JD.</span>
+                <span>
+                  Synthesizing questions for <strong>{candidateExperience} years experience</strong> against target JD.
+                </span>
               </div>
 
               <Button
-                onClick={handleGenerateQuestions}
+                onClick={() => handleGenerateQuestions()}
                 disabled={isGenerating}
-                className="w-full sm:w-auto px-8 py-3 bg-gradient-premium shadow-glow hover:shadow-lg font-bold text-sm gap-2"
+                className={`w-full sm:w-auto px-8 py-3 font-bold text-sm gap-2 shadow-lg transition-all duration-300 ${
+                  isGroqActive 
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/25' 
+                    : 'bg-gradient-premium shadow-glow hover:shadow-lg text-white'
+                }`}
               >
                 {isGenerating ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Analyzing & Calibrating...</span>
+                    <span>Groq LLM Generating Questions...</span>
+                  </>
+                ) : isGroqActive ? (
+                  <>
+                    <Cpu className="w-4 h-4 text-indigo-200" />
+                    <span>Generate with Groq Llama 3.3</span>
                   </>
                 ) : (
                   <>
@@ -624,12 +895,14 @@ Follow-up Probe: ${q.followUpProbe}
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="bg-white rounded-3xl p-8 border border-primary-100 shadow-xl text-center max-w-xl mx-auto space-y-6"
               >
-                <div className="w-16 h-16 rounded-2xl bg-gradient-premium mx-auto flex items-center justify-center shadow-glow animate-pulse">
-                  <Sparkles className="w-8 h-8 text-white" />
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 mx-auto flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-pulse">
+                  <Cpu className="w-8 h-8 text-white" />
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-lg font-bold text-gray-900">Synthesizing Tailored Interview Kit</h3>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {isGroqActive ? 'Groq LPU Accelerating Question Synthesis' : 'Synthesizing Tailored Interview Kit'}
+                  </h3>
                   <p className="text-xs text-gray-500">
                     Evaluating JD requirements against candidate's background at {candidateExperience} years experience tier.
                   </p>
@@ -679,6 +952,17 @@ Follow-up Probe: ${q.followUpProbe}
                     <span className="px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-lg">
                       {generatedKit.candidateExperience} Yrs Experience
                     </span>
+                    {generatedKit.source === 'groq-llm' ? (
+                      <span className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5">
+                        <Cpu className="w-3.5 h-3.5 text-indigo-200" />
+                        <span>Groq AI ({generatedKit.model?.split('-').slice(0, 3).join(' ') || 'Llama 3.3'})</span>
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg flex items-center gap-1">
+                        <Sliders className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Calibrated Algorithmic Mode</span>
+                      </span>
+                    )}
                   </div>
 
                   <h2 className="text-2xl font-extrabold text-gray-900">
@@ -699,7 +983,7 @@ Follow-up Probe: ${q.followUpProbe}
                     {copiedAll ? 'Copied Kit!' : 'Copy Entire Kit'}
                   </Button>
                   <Button
-                    onClick={handleGenerateQuestions}
+                    onClick={() => handleGenerateQuestions()}
                     className="gap-2 text-xs font-semibold bg-dark-900 hover:bg-black text-white"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />

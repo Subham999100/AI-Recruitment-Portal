@@ -79,5 +79,7 @@ export interface InterviewKit {
   summary: string;
   generatedAt: string;
   questions: InterviewQuestion[];
+  source?: 'groq-llm' | 'algorithmic';
+  model?: string;
 }
 
