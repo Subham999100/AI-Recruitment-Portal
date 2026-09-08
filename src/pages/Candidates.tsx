@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Filter, Eye, CheckCircle, XCircle, Users } from 'lucide-react';
 import { candidateService } from '../services/candidateService';
 import { Candidate } from '../types';
 import { Button } from '../components/common/Button';
@@ -122,12 +122,29 @@ export default function Candidates() {
       </div>
 
       {filteredCandidates.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-          <Users className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No candidates found</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Try adjusting your search or filter criteria.
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4 border border-gray-100">
+            <Users className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {candidates.length === 0 ? 'No candidates' : 'No candidates found'}
+          </h3>
+          <p className="mt-1 text-sm text-gray-500 max-w-sm mx-auto">
+            {candidates.length === 0 
+              ? 'There are currently no candidates in the portal. Upload resumes to get started.'
+              : 'No candidates matched your search and filter criteria.'}
           </p>
+          {candidates.length === 0 ? (
+            <div className="mt-6">
+              <Button onClick={() => navigate('/upload-match')}>Upload Resumes</Button>
+            </div>
+          ) : (
+            <div className="mt-6">
+              <Button variant="outline" onClick={() => { setSearchTerm(''); setStatusFilter(''); }}>
+                Clear Filters
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

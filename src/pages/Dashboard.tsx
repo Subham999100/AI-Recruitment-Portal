@@ -21,7 +21,7 @@ const itemVariants = {
   visible: {
     y: 0,
     opacity: 1,
-    transition: { type: 'spring', stiffness: 100, damping: 15 }
+    transition: { type: 'spring' as const, stiffness: 100, damping: 15 }
   }
 };
 
@@ -126,36 +126,48 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="divide-y divide-gray-100/50 flex-1 overflow-auto p-2">
-            {recentCandidates.map((candidate, i) => (
-              <motion.div 
-                key={candidate.id} 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.1 }}
-                whileHover={{ scale: 1.01, backgroundColor: 'rgba(255,255,255,0.9)' }}
-                className="p-4 rounded-xl flex items-center justify-between cursor-pointer transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <Avatar fallback={candidate.name} size="lg" className="ring-2 ring-white shadow-md" />
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
-                  </div>
-                  <div>
-                    <h4 className="text-base font-bold text-gray-900">{candidate.name}</h4>
-                    <p className="text-xs font-medium text-primary-600">{candidate.skills.slice(0, 2).join(' • ')}</p>
-                  </div>
+            {recentCandidates.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center mb-3 border border-gray-100">
+                  <Users className="w-6 h-6 text-gray-400" />
                 </div>
-                <div className="text-right flex flex-col items-end gap-2">
-                  <StatusBadge status={candidate.status} />
-                  <div className="w-28 relative group">
-                    <ProgressBar value={candidate.matchScore} className="h-2" colorClass={candidate.matchScore > 85 ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-primary-400 to-indigo-500'} />
-                    <span className="text-[10px] font-bold text-gray-500 mt-1 block tracking-wider uppercase">
-                      {candidate.matchScore}% Match
-                    </span>
+                <p className="text-sm font-semibold text-gray-800">No candidates</p>
+                <p className="text-xs text-gray-400 mt-1 max-w-xs">
+                  Upload resumes to view real-time candidate matches.
+                </p>
+              </div>
+            ) : (
+              recentCandidates.map((candidate, i) => (
+                <motion.div 
+                  key={candidate.id} 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + i * 0.1 }}
+                  whileHover={{ scale: 1.01, backgroundColor: 'rgba(255,255,255,0.9)' }}
+                  className="p-4 rounded-xl flex items-center justify-between cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Avatar fallback={candidate.name} size="lg" className="ring-2 ring-white shadow-md" />
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-gray-900">{candidate.name}</h4>
+                      <p className="text-xs font-medium text-primary-600">{candidate.skills.slice(0, 2).join(' • ')}</p>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                  <div className="text-right flex flex-col items-end gap-2">
+                    <StatusBadge status={candidate.status} />
+                    <div className="w-28 relative group">
+                      <ProgressBar value={candidate.matchScore} className="h-2" colorClass={candidate.matchScore > 85 ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-primary-400 to-indigo-500'} />
+                      <span className="text-[10px] font-bold text-gray-500 mt-1 block tracking-wider uppercase">
+                        {candidate.matchScore}% Match
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            )}
           </div>
         </motion.div>
 
