@@ -102,244 +102,18 @@ Product Lifecycle Management, LLM Benchmarking, PLG Strategy, API Design, SQL, C
   }
 };
 
-interface Candidate {
-  id: number;
-  name: string;
-  initials: string;
-  role: string;
-  category: string;
-  match: number;
-  matchCaption: string;
-  skills: string[];
-  synopsis: string;
-  experience: string;
-  comp: string;
-  github: string;
-  verdict: string;
-}
-
-const CANDIDATE_DATA: Candidate[] = [
-  {
-    id: 1,
-    name: "Dr. Elena Rostova",
-    initials: "ER",
-    role: "Senior AI Research Scientist",
-    category: "ai",
-    match: 98,
-    matchCaption: "Cosine: 0.984",
-    skills: ["PyTorch", "CUDA C++", "Triton", "Speculative Decoding", "Slurm"],
-    synopsis: "Author of 3 high-impact inference optimization papers. Proven 64% latency drop on H100 GPU clusters.",
-    experience: "7 YOE · Ex-HyperScale",
-    comp: "$320k - $360k",
-    github: "github.com/erostova-ai",
-    verdict: "Exceptional system design and mathematical rigor. Ready for instant onsite."
-  },
-  {
-    id: 2,
-    name: "Marcus Vance",
-    initials: "MV",
-    role: "Principal Distributed Systems Lead",
-    category: "systems",
-    match: 95,
-    matchCaption: "Cosine: 0.952",
-    skills: ["Rust", "Go", "Raft Consensus", "Kubernetes", "eBPF"],
-    synopsis: "Architected event streaming infrastructure servicing 4.2M requests/second with five-nines uptime.",
-    experience: "10 YOE · Ex-CloudMesh",
-    comp: "$290k - $340k",
-    github: "github.com/marcusvance-core",
-    verdict: "High-caliber systems engineer with extensive leadership over multi-region cloud migrations."
-  },
-  {
-    id: 3,
-    name: "Tariq Al-Mansoor",
-    initials: "TA",
-    role: "Staff LLM Alignment & Post-Training",
-    category: "ai",
-    match: 94,
-    matchCaption: "Cosine: 0.941",
-    skills: ["RLHF", "DPO", "vLLM", "Constitutional AI", "Python"],
-    synopsis: "Specialist in reasoning model post-training and reward modeling. Built safety evaluation harness for 70B models.",
-    experience: "6 YOE · Ex-Nexus Labs",
-    comp: "$300k - $340k",
-    github: "github.com/tariq-align",
-    verdict: "Strong domain depth in reinforcement learning and red-teaming automated pipelines."
-  },
-  {
-    id: 4,
-    name: "Kavita Reddy",
-    initials: "KR",
-    role: "Cloud Infrastructure & Platform Architect",
-    category: "systems",
-    match: 91,
-    matchCaption: "Cosine: 0.918",
-    skills: ["Terraform", "AWS Multi-Region", "K8s Operator", "Datadog", "ArgoCD"],
-    synopsis: "Scaled enterprise cloud footprint to 8 regions with automated zero-trust security and GitOps CD.",
-    experience: "8 YOE · Ex-ApexFintech",
-    comp: "$260k - $300k",
-    github: "github.com/kreddy-infra",
-    verdict: "Thorough SRE & security foundation. Demonstrates disciplined operational maturity."
-  },
-  {
-    id: 5,
-    name: "Sophia Lin",
-    initials: "SL",
-    role: "VP of Product Innovation (AI Ops)",
-    category: "product",
-    match: 89,
-    matchCaption: "Cosine: 0.892",
-    skills: ["Product Strategy", "LLM Evaluation", "PLG", "Developer UX", "SOC2"],
-    synopsis: "Scaled AI developer tools from zero to $35M ARR. Authored automated hallucination benchmark suites.",
-    experience: "9 YOE · Ex-FrontierLabs",
-    comp: "$310k - $360k",
-    github: "sophialin.io/essays",
-    verdict: "Visionary product thinker who bridges technical AI research with enterprise commercial viability."
-  },
-  {
-    id: 6,
-    name: "Liam O'Connor",
-    initials: "LO",
-    role: "Computer Vision & Edge Inference Lead",
-    category: "ai",
-    match: 88,
-    matchCaption: "Cosine: 0.884",
-    skills: ["TensorRT", "ONNX", "Embedded C++", "YOLO-v11", "ROS2"],
-    synopsis: "Deployed real-time perception models on low-power Jetson Orin modules with sub-12ms pipeline latency.",
-    experience: "5 YOE · Ex-Autonoma",
-    comp: "$250k - $290k",
-    github: "github.com/liam-edgevision",
-    verdict: "Solid embedded ML profile. Outstanding fit for robotics and edge perception teams."
-  }
-];
-
-interface QuestionItem {
-  badge: string;
-  q: string;
-  rubric: string;
-  followUp: string;
-}
-
-const QUESTION_DATABASE: Record<string, Record<string, QuestionItem[]>> = {
-  'ai-scientist': {
-    'architecture': [
-      {
-        badge: "SYSTEM DESIGN // HIGH CONCURRENCY INFERENCE",
-        q: "How would you design a distributed KV-cache eviction and speculative decoding architecture to serve a 70B parameter model across 8x H100 GPUs while maintaining a sub-10ms Time-to-First-Token under bursty 5,000 QPS load?",
-        rubric: "Candidate should mention PagedAttention mechanics, continuous batching, chunked prefill, and inter-GPU NVLink communication topology over PCIe.",
-        followUp: "How do you handle speculative decoding verification if the small draft model has high rejection variance on code generation tasks?"
-      },
-      {
-        badge: "MEMORY OPTIMIZATION // KERNEL SYNTHESIS",
-        q: "Walk through the architectural trade-offs between FP8, INT4 AWQ, and dynamic block-wise quantization for LLM weights and activations during matrix multiplications in custom CUDA/Triton kernels.",
-        rubric: "Look for explicit understanding of tensor memory bandwidth bottlenecks vs. compute bound ALU saturation, precision degradation mitigation, and dequantization overhead.",
-        followUp: "What specific hardware changes in NVIDIA Hopper/Blackwell architectures alter this memory bandwidth tradeoff?"
-      }
-    ],
-    'hands-on': [
-      {
-        badge: "DEBUGGING // DISTRIBUTED GRADIENT DRIFT",
-        q: "During multi-node FSDP (Fully Sharded Data Parallel) pre-training on 256 GPUs, you notice sudden loss spikes every 1,400 steps without NaN loss values. How do you systematically isolate whether this is an FP16 overflow, gradient clipping bug, or silent NCCL socket drop?",
-        rubric: "Look for telemetry diagnosis (monitoring torch.distributed logs, PyTorch Profiler traces, Inf/NaN hooks on backward passes, and gradient norm anomaly detection).",
-        followUp: "How would you implement checkpoint rollback without losing more than 10 minutes of compute?"
-      }
-    ],
-    'behavioral': [
-      {
-        badge: "RESEARCH LEADERSHIP // DEADLINE PRESSURES",
-        q: "Describe a situation where an experimental model architecture showed promising academic metrics in paper benchmarks, but completely failed production cost and latency SLAs. How did you realign the team?",
-        rubric: "Evaluates ability to kill pet projects objectively, communicate ROI to stakeholders, and pivot from theoretical research to high-impact production engineering.",
-        followUp: "What heuristic do you use to determine whether to optimize an existing model or train a new baseline from scratch?"
-      }
-    ],
-    'rapid-fire': [
-      {
-        badge: "RAPID FIRE // CONCEPT VERIFICATION",
-        q: "In 60 seconds or less: explain why FlashAttention achieves a 2x-4x speedup over standard attention without mathematically changing the softmax output.",
-        rubric: "Must pinpoint SRAM tiling and online softmax calculation to eliminate expensive reads/writes to high-bandwidth GPU memory (HBM).",
-        followUp: "What is the primary difference between FlashAttention-2 and FlashAttention-3?"
-      }
-    ]
-  },
-  'backend-lead': {
-    'architecture': [
-      {
-        badge: "CONSENSUS & SCALE // DISTRIBUTED LEDGER",
-        q: "You need to build a globally distributed event sourcing ledger with multi-region active-active writes that guarantees linearizability for account balances. How do you design the storage, quorum, and conflict resolution?",
-        rubric: "Candidate should explain Raft vs Paxos trade-offs, Spanner-style TrueTime vs Lamport vector clocks, and partitioning strategies that avoid global lock contention.",
-        followUp: "What happens to write availability when transatlantic fiber lines experience a 300ms partition?"
-      }
-    ],
-    'hands-on': [
-      {
-        badge: "CONCURRENCY & PERFORMANCE // LOW LATENCY",
-        q: "A high-throughput Go service is suffering from catastrophic stop-the-world GC pauses during peak traffic. How would you profile memory allocations and rewrite the critical path to achieve zero-heap allocation?",
-        rubric: "Should demonstrate proficiency with pprof, sync.Pool object reuse, escape analysis, and pre-allocated byte slices.",
-        followUp: "Under what conditions would you consider rewriting that microservice module in Rust?"
-      }
-    ],
-    'behavioral': [
-      {
-        badge: "INCIDENT POST-MORTEM // REPUTATION RISK",
-        q: "Tell me about a catastrophic production outage you personally caused or were in charge of mitigating. How did you manage customer communication and engineer safeguards against recurrence?",
-        rubric: "Focuses on radical ownership, psychological safety in post-mortems, and engineering automated regression tests rather than blaming human error.",
-        followUp: "How did you modify your staging deployment pipeline the following week?"
-      }
-    ],
-    'rapid-fire': [
-      {
-        badge: "RAPID FIRE // DISTRIBUTED SYSTEMS",
-        q: "What is the difference between at-least-once, at-most-once, and exactly-once message delivery in Apache Kafka, and why is exactly-once technically difficult across external database sinks?",
-        rubric: "Explanation of two-phase commits, idempotency keys, and transaction coordinator mechanics.",
-        followUp: "What is the write amplification factor of dual-write idempotency?"
-      }
-    ]
-  }
-};
-
-const DEFAULT_QUESTIONS: QuestionItem[] = [
-  {
-    badge: "CORE ARCHITECTURE // SCALABILITY",
-    q: "How would you design a fault-tolerant, horizontally scalable architecture for this organization that handles a 10x traffic surge without human intervention?",
-    rubric: "Evaluates modular decomposition, rate limiting, circuit breaking, caching layers, and decoupled async queues.",
-    followUp: "What is the single point of failure in that proposed design?"
-  },
-  {
-    badge: "TECHNICAL DECISION-MAKING // TRADE-OFFS",
-    q: "Walk me through the hardest technical trade-off you had to defend in the last 18 months where neither choice was clearly optimal.",
-    rubric: "Demonstrates pragmatism, communication of technical debt, business alignment, and collaborative consensus building.",
-    followUp: "If you had 3 extra months, would you have chosen differently?"
-  }
-];
-
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [activeProfileKey, setActiveProfileKey] = useState<string>('ai-engineer');
-  const [isSynthesizing, setIsSynthesizing] = useState(false);
-
-  // Candidate Pipeline State
-  const [candidateFilter, setCandidateFilter] = useState<string>('all');
-  const [candidateSearch, setCandidateSearch] = useState<string>('');
-  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
-
-  // Question Generator State
-  const [qRole, setQRole] = useState<string>('ai-scientist');
-  const [qFocus, setQFocus] = useState<string>('architecture');
-  const [qTier, setQTier] = useState<string>('Tier 1: Senior/Staff (5-8 YOE)');
-  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState<boolean>(false);
-  const [generatedQuestions, setGeneratedQuestions] = useState<QuestionItem[]>(
-    QUESTION_DATABASE['ai-scientist']['architecture']
-  );
-  const [copiedStatus, setCopiedStatus] = useState<boolean>(false);
-
-  const activeProfile = ATS_PROFILES[activeProfileKey] || ATS_PROFILES['ai-engineer'];
+  const activeProfile = ATS_PROFILES['ai-engineer'];
 
   // Metrics counter states
-  const [metric1, setMetric1] = useState(98.7);
-  const [metric2, setMetric2] = useState(1.8);
-  const [metric3, setMetric3] = useState(82);
-  const [metric4, setMetric4] = useState(140);
+  const [metric1, setMetric1] = useState(0);
+  const [metric2, setMetric2] = useState(0);
+  const [metric3, setMetric3] = useState(0);
+  const [metric4, setMetric4] = useState(0);
 
   // SVG ring circumference (r=75 => 2 * PI * 75 ~= 471.2)
   const circleCircumference = 2 * Math.PI * 75;
@@ -540,62 +314,104 @@ export default function LandingPage() {
     };
   }, []);
 
-  // Filter candidates
-  const filteredCandidates = CANDIDATE_DATA.filter(c => {
-    const matchCat = candidateFilter === 'all' || c.category === candidateFilter;
-    const matchSearch =
-      candidateSearch === '' ||
-      c.name.toLowerCase().includes(candidateSearch.toLowerCase()) ||
-      c.role.toLowerCase().includes(candidateSearch.toLowerCase()) ||
-      c.skills.some(s => s.toLowerCase().includes(candidateSearch.toLowerCase()));
-    return matchCat && matchSearch;
-  });
+  // 3D Gyro Parallax effect on mouse move
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  // Re-analyze action simulation
-  const handleReanalyze = () => {
-    setIsSynthesizing(true);
-    setTimeout(() => {
-      setIsSynthesizing(false);
-    }, 600);
-  };
+    let targetRotX = 0, targetRotY = 0;
+    let currentRotX = 0, currentRotY = 0;
+    let targetTransX = 0, targetTransY = 0;
+    let currentTransX = 0, currentTransY = 0;
+    let animId: number;
 
-  // Generate Questions Action
-  const handleGenerateQuestions = () => {
-    setIsGeneratingQuestions(true);
-    setTimeout(() => {
-      const roleData = QUESTION_DATABASE[qRole] || {};
-      const questions = roleData[qFocus] || DEFAULT_QUESTIONS;
-      setGeneratedQuestions(questions);
-      setIsGeneratingQuestions(false);
-    }, 450);
-  };
+    const handleMouseMove = (e: MouseEvent) => {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const normX = (e.clientX - centerX) / centerX;
+      const normY = (e.clientY - centerY) / centerY;
 
-  const handleCopyQuestions = () => {
-    const text = generatedQuestions
-      .map((q, idx) => `Q${idx + 1} (${q.badge}):\n${q.q}\nRubric: ${q.rubric}\nFollow-Up: ${q.followUp}`)
-      .join('\n\n');
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedStatus(true);
-      setTimeout(() => setCopiedStatus(false), 2000);
-    });
-  };
+      targetRotY = normX * 28;
+      targetRotX = -normY * 24;
+      targetTransX = normX * 45;
+      targetTransY = normY * 38;
+    };
 
-  const handleSignInClick = () => {
+    const handleMouseLeave = () => {
+      targetRotX = 0;
+      targetRotY = 0;
+      targetTransX = 0;
+      targetTransY = 0;
+    };
+
+    function updateGyro() {
+      currentRotX += (targetRotX - currentRotX) * 0.1;
+      currentRotY += (targetRotY - currentRotY) * 0.1;
+      currentTransX += (targetTransX - currentTransX) * 0.1;
+      currentTransY += (targetTransY - currentTransY) * 0.1;
+
+      if (canvas) {
+        canvas.style.transform = `perspective(1200px) rotateX(${currentRotX.toFixed(2)}deg) rotateY(${currentRotY.toFixed(2)}deg) translate3d(${currentTransX.toFixed(1)}px, ${currentTransY.toFixed(1)}px, 0)`;
+      }
+
+      animId = requestAnimationFrame(updateGyro);
+    }
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseleave', handleMouseLeave);
+    updateGyro();
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseleave', handleMouseLeave);
+      cancelAnimationFrame(animId);
+    };
+  }, []);
+
+  // Animate metrics counter on mount
+  useEffect(() => {
+    const duration = 1600;
+    const startTime = performance.now();
+
+    function step(now: number) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+
+      setMetric1(parseFloat((ease * 98.7).toFixed(1)));
+      setMetric2(parseFloat((ease * 1.8).toFixed(1)));
+      setMetric3(Math.floor(ease * 82));
+      setMetric4(Math.floor(ease * 140));
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    }
+
+    requestAnimationFrame(step);
+  }, []);
+
+  // Scroll reveal observer
+  useEffect(() => {
+    const elements = document.querySelectorAll('[data-reveal]');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    elements.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  const handleLoginClick = () => {
     if (isAuthenticated) {
       navigate('/dashboard');
     } else {
       navigate('/login');
     }
-  };
-
-  const handleQuickDemoLogin = () => {
-    login('mock-jwt-token-12345', {
-      id: 1,
-      name: 'Demo Recruiter',
-      email: 'admin@example.com',
-      role: 'recruiter'
-    });
-    navigate('/dashboard');
   };
 
   return (
@@ -644,11 +460,11 @@ export default function LandingPage() {
               </button>
             ) : (
               <button 
-                onClick={handleSignInClick} 
+                onClick={handleLoginClick} 
                 className="btn-primary-neon"
-                id="landingSignInBtn"
+                id="landingLoginBtn"
               >
-                Sign In
+                Login
               </button>
             )}
           </div>
@@ -659,22 +475,22 @@ export default function LandingPage() {
         {/* Hero Section */}
         <section className="hero-section" id="hero">
           <div className="container hero-layout">
-            <div className="hero-pill-badge">
+            <div className="hero-pill-badge" data-reveal>
               <span className="pill-spark">⚡</span>
               <span>Autonomous Talent Intelligence Engine</span>
               <span className="pill-tag">99.4% Precision</span>
             </div>
 
-            <h1 className="hero-title">
+            <h1 className="hero-title" data-reveal>
               Find the <span className="gradient-text">Right Talent</span> with<br />
               AI Recruitment Screening
             </h1>
 
-            <p className="hero-subtext">
+            <p className="hero-subtext" data-reveal>
               Eliminate 40+ hours of manual resume audits. Clyptus's multi-modal vector engine evaluates ATS compatibility, simulates deep technical competence, and auto-synthesizes adaptive interview rubrics in sub-seconds.
             </p>
 
-            <div className="hero-cta-group">
+            <div className="hero-cta-group" data-reveal>
               <button 
                 onClick={() => navigate(isAuthenticated ? '/upload' : '/login')} 
                 className="btn-hero-primary"
@@ -686,17 +502,21 @@ export default function LandingPage() {
                 </svg>
               </button>
 
-              <a href="#candidate-dossier" className="btn-hero-secondary" id="heroPipelineBtn">
+              <button 
+                onClick={() => navigate(isAuthenticated ? '/candidates' : '/login')} 
+                className="btn-hero-secondary"
+                id="heroPipelineBtn"
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" />
                   <polygon points="10 8 16 12 10 16 10 8" />
                 </svg>
                 <span>Inspect Talent Pipeline</span>
-              </a>
+              </button>
             </div>
 
             {/* Live Metrics Ticker */}
-            <div className="metrics-strip">
+            <div className="metrics-strip" data-reveal>
               <div className="metric-card">
                 <div className="metric-number">{metric1}%</div>
                 <div className="metric-label">Semantic Match Accuracy</div>
@@ -723,7 +543,7 @@ export default function LandingPage() {
         {/* SECTION 1: Interactive ATS Score Scanner */}
         <section className="section-wrapper" id="ats-scanner">
           <div className="container">
-            <div className="section-header">
+            <div className="section-header" data-reveal>
               <span className="eyebrow">Module 01 // Deep Resume Parsing</span>
               <h2 className="section-title">
                 Interactive <span className="gradient-text">ATS Score Optimizer</span>
@@ -733,61 +553,9 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="ats-interactive-grid">
-              {/* Left: Sample Profile Selection & Document Preview */}
-              <div className="ats-control-panel glass-card">
-                <div className="panel-topbar">
-                  <div className="topbar-tag">CANDIDATE DOSSIER SAMPLES</div>
-                  <div className="topbar-status">SELECT ROLE TO AUDIT</div>
-                </div>
-
-                <div className="sample-picker">
-                  <label className="input-label">Select Candidate CV Benchmark:</label>
-                  <div className="profile-buttons">
-                    {Object.values(ATS_PROFILES).map(profile => (
-                      <button
-                        key={profile.id}
-                        onClick={() => setActiveProfileKey(profile.id)}
-                        className={`profile-btn ${activeProfileKey === profile.id ? 'active' : ''}`}
-                      >
-                        <div className="btn-role">{profile.name} — {profile.role}</div>
-                        <div className="btn-meta">Score {profile.score}%</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="resume-preview-box">
-                  <div className="preview-header">
-                    <span className="preview-title" id="resumeTitle">{activeProfile.badge}</span>
-                    <span className="preview-badge">Vectorized</span>
-                  </div>
-                  <pre className="resume-snippet" id="resumeSnippet">
-                    {activeProfile.snippet}
-                  </pre>
-                </div>
-
-                <div className="audit-action-bar">
-                  <button 
-                    onClick={handleReanalyze} 
-                    className="btn-scan" 
-                    id="reanalyzeBtn"
-                    disabled={isSynthesizing}
-                  >
-                    <span>{isSynthesizing ? 'Synthesizing Vectors...' : '⚡ Re-Synthesize ATS Vectors'}</span>
-                  </button>
-                  <button 
-                    onClick={() => navigate(isAuthenticated ? '/upload' : '/login')}
-                    className="btn-inspect"
-                    style={{ padding: '8px 16px' }}
-                  >
-                    Upload Live Resume
-                  </button>
-                </div>
-              </div>
-
-              {/* Right: Live Score Gauge & Diagnostics */}
-              <div className="ats-score-panel glass-card">
+            <div className="ats-interactive-grid" data-reveal>
+              {/* Live ATS Score Gauge & Diagnostics Panel */}
+              <div className="ats-score-panel glass-card" style={{ maxWidth: '680px', width: '100%', margin: '0 auto' }}>
                 <div className="panel-topbar">
                   <div className="topbar-tag">ATS EVALUATION TELEMETRY</div>
                   <div className="live-pill">PARSED OK</div>
@@ -817,7 +585,7 @@ export default function LandingPage() {
                         cy="90"
                         style={{
                           strokeDasharray: circleCircumference,
-                          strokeDashoffset: isSynthesizing ? circleCircumference : progressOffset,
+                          strokeDashoffset: progressOffset,
                           transition: 'stroke-dashoffset 0.8s ease-in-out'
                         }}
                       />
@@ -830,7 +598,7 @@ export default function LandingPage() {
                     </svg>
                     <div className="gauge-value">
                       <span className="score-number" id="atsScoreValue">
-                        {isSynthesizing ? '...' : activeProfile.score}
+                        {activeProfile.score}
                       </span>
                       <span className="score-max">/100</span>
                       <span className="score-rating" id="atsScoreTier">{activeProfile.tier}</span>
@@ -864,7 +632,7 @@ export default function LandingPage() {
                       <div
                         className="cyber-bar-fill"
                         id="barLexicon"
-                        style={{ width: `${isSynthesizing ? 0 : activeProfile.lexicon}%` }}
+                        style={{ width: `${activeProfile.lexicon}%` }}
                       />
                     </div>
                   </div>
@@ -877,7 +645,7 @@ export default function LandingPage() {
                       <div
                         className="cyber-bar-fill"
                         id="barOwnership"
-                        style={{ width: `${isSynthesizing ? 0 : activeProfile.ownership}%` }}
+                        style={{ width: `${activeProfile.ownership}%` }}
                       />
                     </div>
                   </div>
@@ -890,7 +658,7 @@ export default function LandingPage() {
                       <div
                         className="cyber-bar-fill"
                         id="barFormatting"
-                        style={{ width: `${isSynthesizing ? 0 : activeProfile.formatting}%` }}
+                        style={{ width: `${activeProfile.formatting}%` }}
                       />
                     </div>
                   </div>
@@ -911,213 +679,10 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* SECTION 2: Activated Candidate Intelligence Pipeline Dossier */}
-        <section className="section-wrapper" id="candidate-dossier">
-          <div className="container">
-            <div className="section-header">
-              <span className="eyebrow">Module 02 // Candidate Intelligence Dossier</span>
-              <h2 className="section-title">
-                Autonomous <span className="gradient-text">Talent Pipeline Leaderboard</span>
-              </h2>
-              <p className="section-desc">
-                High-dimensional vector embeddings rank candidates across technical competence, system ownership, and verified background signals.
-              </p>
-            </div>
-
-            {/* Candidate Search & Filter Toolbar */}
-            <div className="candidate-toolbar glass-card">
-              <div className="search-input-wrap">
-                <span className="search-icon">🔍</span>
-                <input
-                  type="text"
-                  value={candidateSearch}
-                  onChange={(e) => setCandidateSearch(e.target.value)}
-                  placeholder="Search by candidate name, role, or tech stack (e.g. PyTorch, Rust, CUDA)..."
-                />
-              </div>
-
-              <div className="filter-pills">
-                {[
-                  { key: 'all', label: 'All Candidates' },
-                  { key: 'ai', label: 'AI & Inference' },
-                  { key: 'systems', label: 'Systems & Cloud' },
-                  { key: 'product', label: 'Product & Ops' }
-                ].map(tab => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setCandidateFilter(tab.key)}
-                    className={`filter-pill ${candidateFilter === tab.key ? 'active' : ''}`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="candidate-count-badge">
-                Displaying <strong>{filteredCandidates.length}</strong> Qualified Profiles
-              </div>
-            </div>
-
-            {/* Candidate Cards Grid */}
-            <div className="candidate-grid" id="candidateGrid">
-              {filteredCandidates.map(cand => (
-                <div key={cand.id} className="candidate-card glass-card">
-                  <div>
-                    <div className="cand-top">
-                      <div className="cand-profile">
-                        <div className="cand-avatar">{cand.initials}</div>
-                        <div>
-                          <div className="cand-name">{cand.name}</div>
-                          <div className="cand-role">{cand.role}</div>
-                        </div>
-                      </div>
-                      <div className="cand-match-badge">
-                        <div className="match-pct">{cand.match}%</div>
-                        <div className="match-caption">{cand.matchCaption}</div>
-                      </div>
-                    </div>
-
-                    <div className="cand-tags">
-                      {cand.skills.map((s, idx) => (
-                        <span key={idx} className="skill-tag">{s}</span>
-                      ))}
-                    </div>
-
-                    <p className="cand-synopsis">"{cand.synopsis}"</p>
-                  </div>
-
-                  <div className="cand-footer">
-                    <span className="cand-meta">{cand.experience}</span>
-                    <button
-                      className="btn-inspect"
-                      onClick={() => setSelectedCandidate(cand)}
-                    >
-                      Inspect Dossier
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* SECTION 3: Activated AI Interview Question Synthesis */}
-        <section className="section-wrapper" id="question-gen">
-          <div className="container">
-            <div className="section-header">
-              <span className="eyebrow">Module 03 // Adaptive Interview Synthesis</span>
-              <h2 className="section-title">
-                Dynamic <span className="gradient-text">Interview Question Generator</span>
-              </h2>
-              <p className="section-desc">
-                Synthesize context-aware technical inquiries and grading rubrics mapped directly to candidate resumes and job requirements.
-              </p>
-            </div>
-
-            <div className="qgen-wrapper glass-card">
-              {/* Controls */}
-              <div className="qgen-controls">
-                <div className="control-group">
-                  <label className="q-label">Target Role Evaluation:</label>
-                  <select
-                    className="cyber-select"
-                    value={qRole}
-                    onChange={(e) => setQRole(e.target.value)}
-                  >
-                    <option value="ai-scientist">Staff AI Research Scientist (CUDA / PyTorch)</option>
-                    <option value="backend-lead">Principal Systems Engineer (Rust / Kafka / Distributed)</option>
-                  </select>
-                </div>
-
-                <div className="control-group">
-                  <label className="q-label">Interview Competency Focus:</label>
-                  <select
-                    className="cyber-select"
-                    value={qFocus}
-                    onChange={(e) => setQFocus(e.target.value)}
-                  >
-                    <option value="architecture">System Design & Scale</option>
-                    <option value="hands-on">Hands-On Debugging</option>
-                    <option value="behavioral">Research Leadership & Alignment</option>
-                    <option value="rapid-fire">Rapid-Fire Verification</option>
-                  </select>
-                </div>
-
-                <div className="control-group">
-                  <label className="q-label">Experience Tier Calibration:</label>
-                  <select
-                    className="cyber-select"
-                    value={qTier}
-                    onChange={(e) => setQTier(e.target.value)}
-                  >
-                    <option value="Tier 1: Senior/Staff (5-8 YOE)">Tier 1: Senior/Staff (5-8 YOE)</option>
-                    <option value="Tier 2: Principal/Lead (8-12+ YOE)">Tier 2: Principal/Lead (8-12+ YOE)</option>
-                  </select>
-                </div>
-
-                <button
-                  onClick={handleGenerateQuestions}
-                  className="btn-generate"
-                  disabled={isGeneratingQuestions}
-                >
-                  <span className="gen-pulse" />
-                  <span>{isGeneratingQuestions ? 'Synthesizing with LLM...' : '⚡ Generate Adaptive Rubric'}</span>
-                </button>
-
-                <div style={{ marginTop: '0.8rem', padding: '1rem', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', border: '1px solid var(--border-glass)' }}>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--neon-lavender)', fontWeight: 600, marginBottom: '4px' }}>
-                    🤖 LIVE GROQ LPU ENGINE CONNECTED
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Portal supports sub-2s generation with your custom Groq API keys under <strong>/jobs</strong>.
-                  </p>
-                </div>
-              </div>
-
-              {/* Output Stream */}
-              <div className="qgen-output-box">
-                <div className="output-topbar">
-                  <div className="output-title">
-                    <span className="terminal-dots">
-                      <span /><span /><span />
-                    </span>
-                    <span>clyptus-llm-evaluator // {qRole}</span>
-                  </div>
-                  <button onClick={handleCopyQuestions} className="copy-btn">
-                    {copiedStatus ? 'Copied!' : 'Copy Rubric'}
-                  </button>
-                </div>
-
-                <div className="questions-stream-area">
-                  {isGeneratingQuestions ? (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--neon-lavender)', fontFamily: 'var(--font-code)' }}>
-                      <div className="gen-pulse" style={{ display: 'inline-block', marginRight: '8px' }} />
-                      Streaming adaptive evaluation rubric from Clyptus LLM Inference Engine...
-                    </div>
-                  ) : (
-                    generatedQuestions.map((item, idx) => (
-                      <div key={idx} className="q-card">
-                        <span className="q-badge">{item.badge}</span>
-                        <p className="q-text">Q{idx + 1}: {item.q}</p>
-                        <div className="q-rubric">
-                          <span className="rubric-label">Evaluation Rubric: </span>{item.rubric}
-                          <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px dashed rgba(255,255,255,0.08)', color: '#94a3b8' }}>
-                            <strong style={{ color: 'var(--neon-lavender)' }}>Suggested Follow-Up: </strong>"{item.followUp}"
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* SECTION 4: End-to-End Workflow & Architecture */}
+        {/* SECTION 2: End-to-End Workflow & Architecture */}
         <section className="section-wrapper" id="workflow">
           <div className="container">
-            <div className="section-header">
+            <div className="section-header" data-reveal>
               <span className="eyebrow">Enterprise Pipeline // 5-Stage Autonomous Flow</span>
               <h2 className="section-title">
                 How Clyptus Works on <span className="gradient-text">Autopilot</span>
@@ -1185,46 +750,6 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
-        {/* CTA Banner Section */}
-        <section className="cta-banner-section">
-          <div className="container">
-            <div className="glass-card cta-box">
-              <div className="cta-glow" />
-              <div className="hero-pill-badge" style={{ margin: '0 auto 1.5rem auto' }}>
-                <span className="pill-spark">⚡</span>
-                <span>Enterprise Recruitment Engine Ready</span>
-              </div>
-              <h2 className="cta-title">
-                Ready to Supercharge Your <span className="gradient-text">Recruitment Funnel</span>?
-              </h2>
-              <p className="cta-sub">
-                Connect your hiring pipeline with Clyptus AI. Score resumes, rank talent, and generate tailored interview rubrics in sub-seconds.
-              </p>
-              <div className="cta-action-row">
-                <button 
-                  onClick={handleSignInClick} 
-                  className="btn-hero-primary"
-                  id="ctaSignInBtn"
-                >
-                  <span>{isAuthenticated ? 'Open Recruitment Dashboard' : 'Sign In to Portal'}</span>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </button>
-                {!isAuthenticated && (
-                  <button 
-                    onClick={handleQuickDemoLogin}
-                    className="btn-hero-secondary"
-                    id="ctaDemoBtn"
-                  >
-                    <span>Instant Demo Access</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
 
       {/* Cyber Footer */}
@@ -1248,9 +773,21 @@ export default function LandingPage() {
             <div className="f-col">
               <div className="f-heading">Platform</div>
               <a href="#ats-scanner">ATS Optimizer</a>
-              <a href="#candidate-dossier">Candidate Dossier</a>
-              <a href="#question-gen">Question Generator</a>
               <a href="#workflow">Workflow Pipeline</a>
+              <button 
+                onClick={() => navigate(isAuthenticated ? '/candidates' : '/login')}
+                style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
+                className="text-gray-400 hover:text-purple-300 block text-sm mb-2"
+              >
+                Candidate Ranking
+              </button>
+              <button 
+                onClick={() => navigate(isAuthenticated ? '/jobs' : '/login')}
+                style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
+                className="text-gray-400 hover:text-purple-300 block text-sm mb-2"
+              >
+                Groq Question Generator
+              </button>
             </div>
             <div className="f-col">
               <div className="f-heading">Integrations</div>
@@ -1276,84 +813,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-
-      {/* Candidate Dossier Modal */}
-      {selectedCandidate && (
-        <div className="candidate-modal-overlay active" onClick={() => setSelectedCandidate(null)}>
-          <div className="candidate-modal-card glass-card" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={() => setSelectedCandidate(null)}>&times;</button>
-            <div id="modalContent">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div className="cand-avatar" style={{ width: '56px', height: '56px', fontSize: '1.3rem' }}>
-                  {selectedCandidate.initials}
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff' }}>{selectedCandidate.name}</h3>
-                  <p style={{ color: 'var(--neon-lavender)', fontSize: '0.9rem' }}>{selectedCandidate.role}</p>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>AI VETTING SCORE</span>
-                  <strong style={{ fontSize: '1.4rem', color: 'var(--neon-green)' }}>{selectedCandidate.match}% Match</strong>
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>TARGET COMPENSATION</span>
-                  <strong style={{ fontSize: '1.1rem', color: '#fff' }}>{selectedCandidate.comp}</strong>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '1.2rem' }}>
-                <label style={{ fontSize: '0.78rem', fontFamily: 'var(--font-code)', color: 'var(--neon-purple)', display: 'block', marginBottom: '4px' }}>
-                  AUTOMATED AI SCREENING VERDICT
-                </label>
-                <p style={{ fontSize: '0.95rem', color: '#e2e8f0', lineHeight: 1.6 }}>{selectedCandidate.verdict}</p>
-              </div>
-
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ fontSize: '0.78rem', fontFamily: 'var(--font-code)', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  VERIFIED COMPETENCY BADGES
-                </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {selectedCandidate.skills.map((s, idx) => (
-                    <span
-                      key={idx}
-                      className="skill-tag"
-                      style={{ background: 'rgba(168, 85, 247, 0.12)', border: '1px solid rgba(168, 85, 247, 0.35)', color: 'var(--neon-lavender)' }}
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button
-                  className="btn-hero-primary"
-                  style={{ flex: 1, padding: '12px 20px', fontSize: '0.92rem' }}
-                  onClick={() => {
-                    alert(`Interview invite dispatched to ${selectedCandidate.name} via autonomous calendar assistant!`);
-                    setSelectedCandidate(null);
-                  }}
-                >
-                  Fast-Track to Onsite
-                </button>
-                <button
-                  className="btn-hero-secondary"
-                  style={{ padding: '12px 20px', fontSize: '0.92rem' }}
-                  onClick={() => {
-                    setSelectedCandidate(null);
-                    window.location.hash = '#ats-scanner';
-                  }}
-                >
-                  Audit Resume
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
