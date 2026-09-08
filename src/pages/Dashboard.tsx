@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Briefcase, UserCheck, Calendar, Activity, Zap, TrendingUp } from 'lucide-react';
+import { Users, Briefcase, UserCheck, Calendar, Activity, Zap, TrendingUp, ArrowRight } from 'lucide-react';
 import { dashboardService } from '../services/dashboardService';
 import { DashboardStats, Job, Candidate } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -26,6 +27,7 @@ const itemVariants = {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -181,7 +183,13 @@ export default function Dashboard() {
               <Briefcase className="w-5 h-5 text-indigo-400" />
               Active AI Deployments
             </h3>
-            <Zap className="w-5 h-5 text-yellow-400 animate-pulse" />
+            <button
+              onClick={() => navigate('/jobs')}
+              className="text-xs font-semibold text-indigo-300 hover:text-white px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 transition-all border border-indigo-500/30 flex items-center gap-1.5"
+            >
+              <span>Jobs & Prep Kits</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
           <div className="divide-y divide-gray-800 flex-1 overflow-auto p-2 relative z-10">
             {recentJobs.map((job, i) => (

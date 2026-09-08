@@ -42,6 +42,7 @@ export interface Job {
   requiredExperience: number;
   skills: string[];
   candidateCount: number;
+  description?: string;
 }
 
 export interface DashboardStats {
@@ -59,3 +60,24 @@ export interface MatchResult {
   matchedSkills: string[];
   missingSkills: string[];
 }
+
+export interface InterviewQuestion {
+  id: string;
+  category: 'JD Technical' | 'Resume Deep-Dive' | 'Experience & Architecture' | 'Behavioral & Leadership';
+  difficulty: 'Junior (0-2 Yrs)' | 'Mid-Level (3-5 Yrs)' | 'Senior (5-8 Yrs)' | 'Lead / Architect (8+ Yrs)';
+  question: string;
+  rationale: string;
+  whatToLookFor: string[];
+  followUpProbe: string;
+}
+
+export interface InterviewKit {
+  jobTitle: string;
+  candidateName: string;
+  candidateExperience: number;
+  matchedScore: number;
+  summary: string;
+  generatedAt: string;
+  questions: InterviewQuestion[];
+}
+

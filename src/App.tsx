@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Candidates from './pages/Candidates';
 import CandidateProfile from './pages/CandidateProfile';
 import UploadMatch from './pages/UploadMatch';
+import Jobs from './pages/Jobs';
 import AppLayout from './components/layout/AppLayout';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/candidates" element={<Candidates />} />
             <Route path="/candidates/:id" element={<CandidateProfile />} />
+            <Route path="/jobs" element={<Jobs />} />
             <Route path="/upload" element={<UploadMatch />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Route>
