@@ -525,18 +525,24 @@ Follow-up Probe: ${q.followUpProbe}
                         onChange={(e) => handleModelChange(e.target.value)}
                         className="w-full bg-black/40 border border-white/20 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-400"
                       >
+                        <option value="openai/gpt-oss-20b" className="bg-dark-900 text-white">
+                          GPT-OSS 20B (Recommended, Ultra Fast)
+                        </option>
+                        <option value="qwen/qwen3.8-27b" className="bg-dark-900 text-white">
+                          Qwen 3.8 27B (High Capability)
+                        </option>
+                        <option value="openai/gpt-oss-120b" className="bg-dark-900 text-white">
+                          GPT-OSS 120B (Frontier Deep Reasoning)
+                        </option>
                         <option value="llama-3.3-70b-versatile" className="bg-dark-900 text-white">
-                          Llama 3.3 70B Versatile (Recommended)
+                          Llama 3.3 70B Versatile
                         </option>
                         <option value="llama-3.1-8b-instant" className="bg-dark-900 text-white">
-                          Llama 3.1 8B Instant (Ultra Fast)
-                        </option>
-                        <option value="mixtral-8x7b-32768" className="bg-dark-900 text-white">
-                          Mixtral 8x7B (32k Context)
+                          Llama 3.1 8B Instant
                         </option>
                       </select>
                       <p className="text-[11px] text-gray-400">
-                        Llama 3.3 70B delivers the highest quality technical reasoning.
+                        Groq LPU hardware powers real-time question generation in ~2 seconds.
                       </p>
                     </div>
                   </div>
@@ -874,7 +880,7 @@ Follow-up Probe: ${q.followUpProbe}
                 ) : isGroqActive ? (
                   <>
                     <Cpu className="w-4 h-4 text-indigo-200" />
-                    <span>Generate with Groq Llama 3.3</span>
+                    <span>Generate with Groq AI</span>
                   </>
                 ) : (
                   <>

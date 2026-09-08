@@ -1,15 +1,21 @@
 import json
 import os
 import re
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from dotenv import load_dotenv
 from groq import Groq
 
 load_dotenv()
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
-FALLBACK_MODEL = "llama-3.1-8b-instant"
+DEFAULT_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+SUPPORTED_MODELS = [
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
+    "openai/gpt-oss-120b",
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant"
+]
 
 
 def get_groq_client(api_key: Optional[str] = None) -> Groq:
@@ -23,6 +29,17 @@ def get_groq_client(api_key: Optional[str] = None) -> Groq:
             "Groq API key is missing. Please provide it in the request or set GROQ_API_KEY in your .env file."
         )
     return Groq(api_key=key.strip())
+
+
+def get_available_models(client: Groq) -> List[str]:
+    """
+    Query Groq for models currently available to this API key.
+    """
+    try:
+        data = client.models.list().data
+        return [m.id for m in data]
+    except Exception:
+        return SUPPORTED_MODELS
 
 
 def extract_skills_and_keywords(job_description: str, api_key: Optional[str] = None) -> Dict[str, Any]:
@@ -48,19 +65,27 @@ Return ONLY valid JSON in this exact format:
 Job Description:
 {job_description}
 """
+        models_to_try = [DEFAULT_MODEL, "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
+        response = None
+        for mod in models_to_try:
+            try:
+                response = client.chat.completions.create(
+                    model=mod,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1,
+                    response_format={"type": "json_object"}
+                )
+                break
+            except Exception:
+                continue
 
-        response = client.chat.completions.create(
-            model=DEFAULT_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
-            response_format={"type": "json_object"}
-        )
+        if response:
+            content = response.choices[0].message.content
+            return json.loads(content)
+        raise RuntimeError("No model responded")
 
-        content = response.choices[0].message.content
-        return json.loads(content)
-
-    except Exception as e:
-        # Graceful fallback: basic regex extractor if Groq key isn't active
+    except Exception:
+        # Graceful fallback: basic regex extractor
         common_tech = [
             "python", "react", "fastapi", "typescript", "javascript", "docker", 
             "kubernetes", "aws", "sql", "postgresql", "mongodb", "node", "ci/cd",
@@ -171,30 +196,37 @@ Candidate Resume / Profile:
 {candidate_resume}
 """
 
-    chosen_model = model if model in [DEFAULT_MODEL, FALLBACK_MODEL, "mixtral-8x7b-32768"] else DEFAULT_MODEL
+    # Build model candidate priority list
+    models_to_try = [model] if model else []
+    for m in ["openai/gpt-oss-20b", "qwen/qwen3.8-27b", "openai/gpt-oss-120b", "llama-3.3-70b-versatile"]:
+        if m not in models_to_try:
+            models_to_try.append(m)
 
-    try:
-        response = client.chat.completions.create(
-            model=chosen_model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.3,
-            response_format={"type": "json_object"}
-        )
-    except Exception:
-        # Fallback to faster instant model if primary model hits rate limit or error
-        response = client.chat.completions.create(
-            model=FALLBACK_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.3,
-            response_format={"type": "json_object"}
-        )
+    response = None
+    last_error = None
+    used_model = model
+
+    for mod in models_to_try:
+        try:
+            response = client.chat.completions.create(
+                model=mod,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.3,
+                response_format={"type": "json_object"}
+            )
+            used_model = mod
+            break
+        except Exception as e:
+            last_error = e
+            continue
+
+    if not response:
+        raise RuntimeError(f"All Groq models failed. Last error: {last_error}")
 
     content = response.choices[0].message.content
     data = json.loads(content)
+    data["used_model"] = used_model
     return data

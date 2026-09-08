@@ -13,7 +13,7 @@ export interface GenerateQuestionsParams {
 
 const GROQ_STORAGE_KEY = 'recruitment_groq_api_key';
 const GROQ_MODEL_KEY = 'recruitment_groq_model';
-export const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
+export const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-20b';
 
 export const interviewService = {
   getStoredApiKey: (): string => {
@@ -145,26 +145,48 @@ Experience: ${exp} years
 Resume Content:
 ${params.candidateResume}`;
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey.trim()}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.2,
-        response_format: { type: 'json_object' }
-      })
-    });
+    const modelsToTry = [modelName, 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-120b'];
+    let lastError: any = null;
+    let res: Response | null = null;
+    let usedModel = modelName;
 
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData?.error?.message || `Groq API error: status ${res.status}`);
+    for (const mod of modelsToTry) {
+      try {
+        const attempt = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey.trim()}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: mod,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.2,
+            response_format: { type: 'json_object' }
+          })
+        });
+
+        if (attempt.ok) {
+          res = attempt;
+          usedModel = mod;
+          break;
+        } else {
+          lastError = await attempt.json().catch(() => ({}));
+          // If not 404 (model not found), don't keep trying others unless it's rate limit or not found
+          if (attempt.status !== 404 && attempt.status !== 400) {
+            break;
+          }
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (!res || !res.ok) {
+      throw new Error(lastError?.error?.message || 'Groq API request failed. Please verify your API key.');
     }
 
     const data = await res.json();
@@ -180,7 +202,7 @@ ${params.candidateResume}`;
       generatedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
       questions: parsed.questions || [],
       source: 'groq-llm',
-      model: modelName
+      model: usedModel
     };
   },
 
