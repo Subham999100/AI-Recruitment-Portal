@@ -7,8 +7,8 @@ interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
 
 export function Table({ className, children, ...props }: TableProps) {
   return (
-    <div className="w-full overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-      <table className={cn('min-w-full divide-y divide-gray-200 text-sm', className)} {...props}>
+    <div className="w-full overflow-x-auto rounded-2xl border border-white/10 bg-[rgba(17,10,27,0.75)] backdrop-blur-xl shadow-xl">
+      <table className={cn('min-w-full divide-y divide-white/10 text-sm', className)} {...props}>
         {children}
       </table>
     </div>
@@ -17,7 +17,7 @@ export function Table({ className, children, ...props }: TableProps) {
 
 export function TableHeader({ className, children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
-    <thead className={cn('bg-gray-50', className)} {...props}>
+    <thead className={cn('bg-white/[0.04] border-b border-white/10', className)} {...props}>
       {children}
     </thead>
   );
@@ -25,7 +25,7 @@ export function TableHeader({ className, children, ...props }: React.HTMLAttribu
 
 export function TableBody({ className, children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
-    <tbody className={cn('divide-y divide-gray-200 bg-white', className)} {...props}>
+    <tbody className={cn('divide-y divide-white/5 bg-transparent', className)} {...props}>
       {children}
     </tbody>
   );
@@ -33,7 +33,7 @@ export function TableBody({ className, children, ...props }: React.HTMLAttribute
 
 export function TableRow({ className, children, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
   return (
-    <tr className={cn('hover:bg-gray-50/50 transition-colors', className)} {...props}>
+    <tr className={cn('hover:bg-purple-500/[0.08] transition-colors', className)} {...props}>
       {children}
     </tr>
   );
@@ -43,7 +43,7 @@ export function TableHead({ className, children, ...props }: React.ThHTMLAttribu
   return (
     <th
       scope="col"
-      className={cn('px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider', className)}
+      className={cn('px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider', className)}
       {...props}
     >
       {children}
@@ -53,7 +53,7 @@ export function TableHead({ className, children, ...props }: React.ThHTMLAttribu
 
 export function TableCell({ className, children, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <td className={cn('px-6 py-4 whitespace-nowrap text-gray-700', className)} {...props}>
+    <td className={cn('px-6 py-4 whitespace-nowrap text-gray-200', className)} {...props}>
       {children}
     </td>
   );

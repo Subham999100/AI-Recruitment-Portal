@@ -121,9 +121,9 @@ export default function UploadMatch() {
   };
 
   const stepVariants = {
-    inactive: { backgroundColor: '#f1f5f9', color: '#94a3b8', scale: 1, border: '2px solid transparent' },
-    active: { backgroundColor: '#eff6ff', color: '#3b82f6', scale: 1.1, border: '2px solid #3b82f6', boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)' },
-    completed: { backgroundColor: '#3b82f6', color: '#ffffff', scale: 1, border: '2px solid #3b82f6', boxShadow: '0 0 10px rgba(59, 130, 246, 0.3)' }
+    inactive: { backgroundColor: 'rgba(255, 255, 255, 0.05)', color: '#64748b', scale: 1, border: '1px solid rgba(255, 255, 255, 0.1)' },
+    active: { backgroundColor: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', scale: 1.1, border: '2px solid #a855f7', boxShadow: '0 0 20px rgba(168, 85, 247, 0.5)' },
+    completed: { backgroundColor: '#9333ea', color: '#ffffff', scale: 1, border: '2px solid #a855f7', boxShadow: '0 0 12px rgba(168, 85, 247, 0.3)' }
   };
 
   return (
@@ -138,13 +138,13 @@ export default function UploadMatch() {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', damping: 15, delay: 0.2 }}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-100 text-primary-700 text-xs font-semibold uppercase tracking-wider mb-2 shadow-sm"
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-[#c084fc] text-xs font-semibold uppercase tracking-wider mb-2 shadow-sm"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>AI Powered</span>
         </motion.div>
-        <h1 className="text-3xl font-bold text-dark-900 tracking-tight">Candidate Match Intelligence</h1>
-        <p className="text-gray-500 max-w-lg mx-auto">Upload resumes and let our AI engine instantly extract skills, evaluate experience, and score against your job description.</p>
+        <h1 className="text-3xl font-extrabold text-white tracking-tight">Candidate Match Intelligence</h1>
+        <p className="text-gray-400 max-w-lg mx-auto text-sm">Upload resumes and let our AI engine instantly extract skills, evaluate experience, and score against your job description.</p>
       </div>
 
       {/* Animated Stepper */}
@@ -164,15 +164,15 @@ export default function UploadMatch() {
                 >
                   {isCompleted ? <CheckCircle className="w-6 h-6" /> : s}
                 </motion.div>
-                <div className={`absolute top-14 whitespace-nowrap text-sm font-medium transition-colors duration-300 ${isActive ? 'text-primary-600' : isCompleted ? 'text-dark-900' : 'text-gray-400'}`}>
+                <div className={`absolute top-14 whitespace-nowrap text-xs font-semibold tracking-wider uppercase transition-colors duration-300 ${isActive ? 'text-[#c084fc]' : isCompleted ? 'text-white' : 'text-gray-500'}`}>
                   {s === 1 ? 'Upload Resumes' : s === 2 ? 'Upload JD' : 'AI Analysis'}
                 </div>
               </div>
               
               {index < 2 && (
-                <div className="flex-1 h-1 mx-4 relative bg-gray-200 rounded-full overflow-hidden">
+                <div className="flex-1 h-1 mx-4 relative bg-white/10 rounded-full overflow-hidden">
                   <motion.div 
-                    className="absolute inset-y-0 left-0 bg-gradient-premium"
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#9333ea] to-[#c084fc]"
                     initial={{ width: '0%' }}
                     animate={{ width: step > s ? '100%' : '0%' }}
                     transition={{ duration: 0.5, ease: 'easeInOut' }}
@@ -186,11 +186,11 @@ export default function UploadMatch() {
 
       {/* Main Upload Card */}
       <motion.div variants={cardVariants} className="mt-16">
-        <div className="glass-panel-heavy rounded-3xl overflow-hidden relative">
+        <div className="bg-[rgba(17,10,27,0.78)] backdrop-blur-2xl rounded-3xl overflow-hidden relative border border-white/10 shadow-2xl">
           
           {/* Subtle background glow */}
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-glow pointer-events-none" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-glow pointer-events-none" />
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full filter blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-fuchsia-500/20 rounded-full filter blur-3xl pointer-events-none" />
 
           <div className="p-10 sm:p-14 relative z-10">
             <AnimatePresence mode="wait">
@@ -204,8 +204,8 @@ export default function UploadMatch() {
                   className="space-y-8"
                 >
                   <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-bold text-dark-900">Add Candidate Resumes</h2>
-                    <p className="text-gray-500">PDF, DOC, or DOCX formats supported up to 10MB each.</p>
+                    <h2 className="text-2xl font-bold text-white">Add Candidate Resumes</h2>
+                    <p className="text-gray-400 text-sm">PDF, DOC, or DOCX formats supported up to 10MB each.</p>
                   </div>
                   
                   <div 
@@ -218,10 +218,10 @@ export default function UploadMatch() {
                     <motion.div 
                       animate={{ 
                         scale: isDragging ? 1.02 : 1,
-                        borderColor: isDragging ? '#3b82f6' : '#e2e8f0',
-                        backgroundColor: isDragging ? 'rgba(239, 246, 255, 0.5)' : 'rgba(248, 250, 252, 0.3)'
+                        borderColor: isDragging ? '#a855f7' : 'rgba(255, 255, 255, 0.15)',
+                        backgroundColor: isDragging ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)'
                       }}
-                      className="border-2 border-dashed rounded-2xl p-12 transition-colors duration-300 relative overflow-hidden group cursor-pointer shadow-sm hover:shadow-md"
+                      className="border-2 border-dashed rounded-2xl p-12 transition-colors duration-300 relative overflow-hidden group cursor-pointer shadow-sm hover:border-purple-500/40"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <input 
@@ -236,7 +236,7 @@ export default function UploadMatch() {
                       {/* 3D Illustration */}
                       <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity duration-500">
                         <motion.div 
-                          className="transform-3d w-48 h-64 bg-white rounded-xl shadow-2xl border border-gray-100 relative"
+                          className="transform-3d w-48 h-64 bg-[#130924] rounded-xl shadow-2xl border border-purple-500/30 relative"
                           animate={{ 
                             rotateX: mousePos.y * 20, 
                             rotateY: mousePos.x * -20,
@@ -244,24 +244,24 @@ export default function UploadMatch() {
                           }}
                           transition={{ type: 'spring', damping: 20, stiffness: 100 }}
                         >
-                           <div className="absolute top-8 left-8 right-8 h-4 bg-gray-200 rounded animate-pulse" />
-                           <div className="absolute top-16 left-8 w-1/2 h-3 bg-gray-100 rounded" />
-                           <div className="absolute top-24 left-8 right-8 h-2 bg-gray-100 rounded" />
-                           <div className="absolute top-28 left-8 right-12 h-2 bg-gray-100 rounded" />
+                           <div className="absolute top-8 left-8 right-8 h-4 bg-purple-500/30 rounded animate-pulse" />
+                           <div className="absolute top-16 left-8 w-1/2 h-3 bg-purple-500/20 rounded" />
+                           <div className="absolute top-24 left-8 right-8 h-2 bg-purple-500/20 rounded" />
+                           <div className="absolute top-28 left-8 right-12 h-2 bg-purple-500/20 rounded" />
                         </motion.div>
                       </div>
 
                       <div className="flex flex-col items-center justify-center relative z-10">
                         <motion.div 
                           whileHover={{ y: -5 }}
-                          className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mb-6 border border-gray-100"
+                          className="w-20 h-20 bg-purple-500/10 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.25)] flex items-center justify-center mb-6 border border-purple-500/40"
                         >
-                          <UploadCloud className="w-10 h-10 text-primary-500" />
+                          <UploadCloud className="w-10 h-10 text-[#c084fc]" />
                         </motion.div>
-                        <span className="text-lg text-dark-900 font-semibold mb-2">
+                        <span className="text-lg text-white font-semibold mb-2">
                           {isDragging ? 'Drop files here' : 'Click or drag resumes here'}
                         </span>
-                        <span className="text-sm text-gray-500">Upload multiple files at once to bulk analyze.</span>
+                        <span className="text-sm text-gray-400">Upload multiple files at once to bulk analyze.</span>
                       </div>
                     </motion.div>
                   </div>
@@ -273,7 +273,7 @@ export default function UploadMatch() {
                       animate={{ opacity: 1, height: 'auto' }}
                       className="space-y-3"
                     >
-                      <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Ready for Analysis ({resumeFiles.length})</h3>
+                      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Ready for Analysis ({resumeFiles.length})</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                         <AnimatePresence>
                           {resumeFiles.map((f, i) => (
@@ -282,20 +282,20 @@ export default function UploadMatch() {
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.9 }}
-                              className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:border-primary-300 transition-colors group"
+                              className="flex items-center justify-between bg-white/5 border border-white/10 p-3.5 rounded-xl shadow-sm hover:border-purple-500/40 transition-colors group"
                             >
                               <div className="flex items-center gap-3 overflow-hidden">
-                                <div className="w-8 h-8 rounded bg-primary-50 flex items-center justify-center flex-shrink-0">
-                                  <FileText className="w-4 h-4 text-primary-600" />
+                                <div className="w-8 h-8 rounded bg-purple-500/20 border border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                                  <FileText className="w-4 h-4 text-[#c084fc]" />
                                 </div>
                                 <div className="flex flex-col overflow-hidden">
-                                  <span className="text-sm font-medium text-dark-900 truncate">{f.name}</span>
+                                  <span className="text-sm font-medium text-white truncate">{f.name}</span>
                                   <span className="text-xs text-gray-400">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
                                 </div>
                               </div>
                               <button 
                                 onClick={(e) => { e.stopPropagation(); removeResume(i); }}
-                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -312,7 +312,7 @@ export default function UploadMatch() {
                       whileTap={{ scale: 0.98 }}
                       disabled={resumeFiles.length === 0}
                       onClick={handleNextStep}
-                      className="px-8 py-4 rounded-xl font-semibold text-white bg-gradient-premium shadow-premium hover:shadow-premium-hover transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      className="px-8 py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-[#9333ea] via-[#a855f7] to-[#c084fc] shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] border border-purple-400/30 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                       Continue to Job Description <ArrowRight className="w-5 h-5" />
                     </motion.button>
@@ -330,8 +330,8 @@ export default function UploadMatch() {
                   className="space-y-8"
                 >
                   <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-bold text-dark-900">Target Job Description</h2>
-                    <p className="text-gray-500">Upload the JD to accurately score and match the candidates.</p>
+                    <h2 className="text-2xl font-bold text-white">Target Job Description</h2>
+                    <p className="text-gray-400 text-sm">Upload the JD to accurately score and match the candidates.</p>
                   </div>
                   
                   <div 
@@ -344,10 +344,10 @@ export default function UploadMatch() {
                     <motion.div 
                       animate={{ 
                         scale: isDragging ? 1.02 : 1,
-                        borderColor: isDragging ? '#8b5cf6' : '#e2e8f0',
-                        backgroundColor: isDragging ? 'rgba(139, 92, 246, 0.05)' : 'rgba(248, 250, 252, 0.3)'
+                        borderColor: isDragging ? '#a855f7' : 'rgba(255, 255, 255, 0.15)',
+                        backgroundColor: isDragging ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)'
                       }}
-                      className="border-2 border-dashed rounded-2xl p-12 transition-colors duration-300 relative overflow-hidden group cursor-pointer shadow-sm hover:shadow-md"
+                      className="border-2 border-dashed rounded-2xl p-12 transition-colors duration-300 relative overflow-hidden group cursor-pointer shadow-sm hover:border-purple-500/40"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <input 
@@ -358,34 +358,17 @@ export default function UploadMatch() {
                         onChange={(e) => handleFileChange(e, 'jd')}
                       />
                       
-                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity duration-500">
-                         <motion.div 
-                          className="transform-3d w-48 h-64 bg-white rounded-xl shadow-2xl border border-gray-100 relative overflow-hidden"
-                          animate={{ 
-                            rotateX: mousePos.y * 20, 
-                            rotateY: mousePos.x * -20,
-                            z: 50
-                          }}
-                          transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-                        >
-                           <div className="absolute top-0 left-0 w-full h-12 bg-accent-100" />
-                           <div className="absolute top-16 left-8 w-2/3 h-4 bg-gray-200 rounded" />
-                           <div className="absolute top-24 left-8 right-8 h-2 bg-gray-100 rounded" />
-                           <div className="absolute top-28 left-8 right-12 h-2 bg-gray-100 rounded" />
-                        </motion.div>
-                      </div>
-
                       <div className="flex flex-col items-center justify-center relative z-10">
                         <motion.div 
                           whileHover={{ y: -5 }}
-                          className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center mb-6 border border-gray-100"
+                          className="w-20 h-20 bg-purple-500/10 rounded-full shadow-[0_0_20px_rgba(168,85,247,0.25)] flex items-center justify-center mb-6 border border-purple-500/40"
                         >
-                          <FileBadge className="w-10 h-10 text-accent-500" />
+                          <FileBadge className="w-10 h-10 text-[#c084fc]" />
                         </motion.div>
-                        <span className="text-lg text-dark-900 font-semibold mb-2">
+                        <span className="text-lg text-white font-semibold mb-2">
                           {isDragging ? 'Drop JD here' : 'Click or drag JD here'}
                         </span>
-                        <span className="text-sm text-gray-500">PDF, DOC, TXT supported.</span>
+                        <span className="text-sm text-gray-400">PDF, DOC, TXT supported.</span>
                       </div>
                     </motion.div>
                   </div>
@@ -394,20 +377,20 @@ export default function UploadMatch() {
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center justify-between bg-white border border-accent-200 p-4 rounded-xl shadow-[0_4px_20px_-4px_rgba(139,92,246,0.1)] group"
+                      className="flex items-center justify-between bg-white/5 border border-purple-500/30 p-4 rounded-xl shadow-lg group"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-accent-50 flex items-center justify-center">
-                          <CheckCircle className="w-5 h-5 text-accent-600" />
+                        <div className="w-10 h-10 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
+                          <CheckCircle className="w-5 h-5 text-[#c084fc]" />
                         </div>
                         <div>
-                          <span className="text-sm font-semibold text-dark-900 block">{jdFile.name}</span>
-                          <span className="text-xs text-gray-500">{(jdFile.size / 1024 / 1024).toFixed(2)} MB • Ready for matching</span>
+                          <span className="text-sm font-semibold text-white block">{jdFile.name}</span>
+                          <span className="text-xs text-gray-400">{(jdFile.size / 1024 / 1024).toFixed(2)} MB • Ready for matching</span>
                         </div>
                       </div>
                       <button 
                         onClick={(e) => { e.stopPropagation(); removeJd(); }}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                       >
                         <X className="w-5 h-5" />
                       </button>
@@ -417,7 +400,7 @@ export default function UploadMatch() {
                   <div className="pt-4 flex justify-between items-center">
                     <button 
                       onClick={() => setStep(1)}
-                      className="text-gray-500 hover:text-dark-900 font-medium px-4 py-2 transition-colors"
+                      className="text-gray-400 hover:text-white font-medium px-4 py-2 transition-colors"
                     >
                       Back
                     </button>
@@ -426,7 +409,7 @@ export default function UploadMatch() {
                       whileTap={{ scale: 0.98 }}
                       disabled={!jdFile}
                       onClick={handleNextStep}
-                      className="px-8 py-4 rounded-xl font-semibold text-white bg-gradient-premium shadow-premium hover:shadow-premium-hover transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      className="px-8 py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-[#9333ea] via-[#a855f7] to-[#c084fc] shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] border border-purple-400/30 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >
                       <Sparkles className="w-5 h-5" /> Start AI Analysis
                     </motion.button>
@@ -443,26 +426,26 @@ export default function UploadMatch() {
                 >
                   <div className="relative w-32 h-32">
                     {/* Glowing AI rings */}
-                    <div className="absolute inset-0 border-4 border-primary-100 rounded-full animate-[spin_4s_linear_infinite]" />
-                    <div className="absolute inset-2 border-4 border-t-accent-500 border-r-transparent border-b-primary-500 border-l-transparent rounded-full animate-[spin_2s_linear_infinite]" />
-                    <div className="absolute inset-4 border-4 border-accent-100 rounded-full animate-[spin_3s_linear_infinite_reverse]" />
+                    <div className="absolute inset-0 border-4 border-purple-500/20 rounded-full animate-[spin_4s_linear_infinite]" />
+                    <div className="absolute inset-2 border-4 border-t-[#c084fc] border-r-transparent border-b-[#9333ea] border-l-transparent rounded-full animate-[spin_2s_linear_infinite]" />
+                    <div className="absolute inset-4 border-4 border-purple-500/10 rounded-full animate-[spin_3s_linear_infinite_reverse]" />
                     
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles className="w-10 h-10 text-primary-600 animate-pulse" />
+                      <Sparkles className="w-10 h-10 text-[#c084fc] animate-pulse" />
                     </div>
                   </div>
 
                   <div className="space-y-4 max-w-sm w-full">
-                    <h2 className="text-2xl font-bold text-dark-900">Analyzing {resumeFiles.length} Profile{resumeFiles.length > 1 ? 's' : ''}...</h2>
-                    <p className="text-sm text-gray-500 h-6">
+                    <h2 className="text-2xl font-bold text-white">Analyzing {resumeFiles.length} Profile{resumeFiles.length > 1 ? 's' : ''}...</h2>
+                    <p className="text-sm text-gray-400 h-6">
                       {progress < 30 ? 'Extracting skills and experience...' : 
                        progress < 70 ? 'Cross-referencing with Job Description...' : 
                        'Calculating AI match scores...'}
                     </p>
                     
-                    <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden relative shadow-inner">
+                    <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden relative border border-white/10">
                       <motion.div 
-                        className="absolute inset-y-0 left-0 bg-gradient-premium rounded-full"
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#9333ea] to-[#c084fc] rounded-full shadow-[0_0_12px_rgba(168,85,247,0.6)]"
                         style={{ width: `${progress}%` }}
                         layout
                       />
@@ -473,7 +456,7 @@ export default function UploadMatch() {
                         className="absolute top-0 bottom-0 w-1/3 bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-[-20deg]"
                       />
                     </div>
-                    <div className="flex justify-between items-center text-xs font-semibold text-primary-600">
+                    <div className="flex justify-between items-center text-xs font-semibold text-[#c084fc]">
                       <span>Processing</span>
                       <span>{Math.round(progress)}%</span>
                     </div>

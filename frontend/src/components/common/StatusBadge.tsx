@@ -32,7 +32,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   // Adjust style for slightly custom colors if needed
   if (status === 'Shortlisted') {
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/25 text-[#c084fc] border border-purple-500/40 shadow-[0_0_10px_rgba(168,85,247,0.2)]">
         {status}
       </span>
     );

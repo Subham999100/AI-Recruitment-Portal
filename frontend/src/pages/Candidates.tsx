@@ -90,11 +90,16 @@ export default function Candidates() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
-        <Button>Add Candidate</Button>
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white">Candidates</h1>
+          <p className="text-sm text-gray-400 mt-1">Review applicant profiles, AI match scores, and hiring stages</p>
+        </div>
+        <Button onClick={() => navigate('/upload')}>
+          Add Candidate
+        </Button>
       </div>
 
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4">
+      <div className="bg-[rgba(17,10,27,0.75)] backdrop-blur-xl p-5 rounded-2xl shadow-xl border border-white/10 flex flex-col md:flex-row gap-4">
         <div className="flex-1">
           <Input
             placeholder="Search by name, email, or skills..."
@@ -106,37 +111,37 @@ export default function Candidates() {
         <div className="w-full md:w-64 flex items-center gap-2">
           <Filter className="w-5 h-5 text-gray-400" />
           <select
-            className="w-full border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm py-2 px-3 border"
+            className="w-full bg-[rgba(10,5,18,0.8)] border border-white/15 rounded-xl shadow-sm text-white focus:border-[#a855f7] focus:ring-1 focus:ring-[#a855f7] sm:text-sm py-2.5 px-3 outline-none"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="">All Statuses</option>
-            <option value="New">New</option>
-            <option value="Under Review">Under Review</option>
-            <option value="Shortlisted">Shortlisted</option>
-            <option value="Interview Scheduled">Interview Scheduled</option>
-            <option value="Selected">Selected</option>
-            <option value="Rejected">Rejected</option>
+            <option value="" className="bg-[#0e071a] text-white">All Statuses</option>
+            <option value="New" className="bg-[#0e071a] text-white">New</option>
+            <option value="Under Review" className="bg-[#0e071a] text-white">Under Review</option>
+            <option value="Shortlisted" className="bg-[#0e071a] text-white">Shortlisted</option>
+            <option value="Interview Scheduled" className="bg-[#0e071a] text-white">Interview Scheduled</option>
+            <option value="Selected" className="bg-[#0e071a] text-white">Selected</option>
+            <option value="Rejected" className="bg-[#0e071a] text-white">Rejected</option>
           </select>
         </div>
       </div>
 
       {filteredCandidates.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4 border border-gray-100">
-            <Users className="h-8 w-8 text-gray-400" />
+        <div className="bg-[rgba(17,10,27,0.75)] backdrop-blur-xl rounded-2xl shadow-xl border border-white/10 p-16 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-purple-500/10 flex items-center justify-center mx-auto mb-4 border border-purple-500/30">
+            <Users className="h-8 w-8 text-[#c084fc]" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-bold text-white">
             {candidates.length === 0 ? 'No candidates' : 'No candidates found'}
           </h3>
-          <p className="mt-1 text-sm text-gray-500 max-w-sm mx-auto">
+          <p className="mt-1 text-sm text-gray-400 max-w-sm mx-auto">
             {candidates.length === 0 
               ? 'There are currently no candidates in the portal. Upload resumes to get started.'
               : 'No candidates matched your search and filter criteria.'}
           </p>
           {candidates.length === 0 ? (
             <div className="mt-6">
-              <Button onClick={() => navigate('/upload-match')}>Upload Resumes</Button>
+              <Button onClick={() => navigate('/upload')}>Upload Resumes</Button>
             </div>
           ) : (
             <div className="mt-6">
@@ -147,7 +152,7 @@ export default function Candidates() {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -164,27 +169,27 @@ export default function Candidates() {
                 <TableRow key={candidate.id}>
                   <TableCell>
                     <div>
-                      <div className="font-medium text-gray-900">{candidate.name}</div>
-                      <div className="text-gray-500 text-xs">{candidate.email}</div>
+                      <div className="font-semibold text-white">{candidate.name}</div>
+                      <div className="text-gray-400 text-xs mt-0.5">{candidate.email}</div>
                     </div>
                   </TableCell>
-                  <TableCell>{candidate.experience} yrs</TableCell>
+                  <TableCell className="text-gray-300 font-medium">{candidate.experience} yrs</TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1 max-w-[200px]">
+                    <div className="flex flex-wrap gap-1.5 max-w-[220px]">
                       {candidate.skills.slice(0, 3).map(skill => (
-                        <span key={skill} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">
+                        <span key={skill} className="px-2 py-0.5 bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[10px] font-semibold rounded-md">
                           {skill}
                         </span>
                       ))}
                       {candidate.skills.length > 3 && (
-                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">
+                        <span className="px-2 py-0.5 bg-white/5 border border-white/10 text-gray-300 text-[10px] font-semibold rounded-md">
                           +{candidate.skills.length - 3}
                         </span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className={`font-semibold ${candidate.matchScore >= 85 ? 'text-green-600' : candidate.matchScore >= 70 ? 'text-yellow-600' : 'text-gray-600'}`}>
+                    <span className={`font-bold ${candidate.matchScore >= 85 ? 'text-emerald-400' : candidate.matchScore >= 70 ? 'text-amber-400' : 'text-gray-400'}`}>
                       {candidate.matchScore}%
                     </span>
                   </TableCell>
@@ -192,15 +197,15 @@ export default function Candidates() {
                     <StatusBadge status={candidate.status} />
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                       <Button variant="ghost" size="sm" onClick={() => navigate(`/candidates/${candidate.id}`)} title="View Profile">
-                        <Eye className="w-4 h-4 text-gray-500 hover:text-primary-600" />
+                        <Eye className="w-4 h-4 text-gray-400 hover:text-[#c084fc]" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleStatusChange(candidate.id, 'Shortlisted')} title="Shortlist">
-                        <CheckCircle className="w-4 h-4 text-gray-500 hover:text-green-600" />
+                        <CheckCircle className="w-4 h-4 text-gray-400 hover:text-emerald-400" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleStatusChange(candidate.id, 'Rejected')} title="Reject">
-                        <XCircle className="w-4 h-4 text-gray-500 hover:text-red-600" />
+                        <XCircle className="w-4 h-4 text-gray-400 hover:text-red-400" />
                       </Button>
                     </div>
                   </TableCell>

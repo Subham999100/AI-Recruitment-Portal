@@ -13,17 +13,17 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, leftIcon, rightIcon, children, disabled, ...props }, ref) => {
     const variants = {
-      primary: 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm border border-transparent',
-      secondary: 'bg-primary-50 text-primary-700 hover:bg-primary-100 border border-transparent',
-      outline: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
-      ghost: 'bg-transparent text-gray-700 hover:bg-gray-100',
-      danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm border border-transparent',
+      primary: 'bg-gradient-to-r from-[#9333ea] via-[#a855f7] to-[#c084fc] text-white shadow-[0_0_20px_rgba(168,85,247,0.35)] hover:shadow-[0_0_30px_rgba(168,85,247,0.55)] border border-purple-400/30 hover:brightness-110 active:scale-[0.98]',
+      secondary: 'bg-purple-500/15 text-purple-200 border border-purple-500/30 hover:bg-purple-500/25 active:scale-[0.98]',
+      outline: 'bg-transparent text-gray-200 border border-white/20 hover:bg-white/10 hover:text-white active:scale-[0.98]',
+      ghost: 'bg-transparent text-gray-400 hover:text-white hover:bg-white/5',
+      danger: 'bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 shadow-sm active:scale-[0.98]',
     };
 
     const sizes = {
-      sm: 'px-3 py-1.5 text-sm',
-      md: 'px-4 py-2 text-sm',
-      lg: 'px-5 py-2.5 text-base',
+      sm: 'px-3 py-1.5 text-xs rounded-lg',
+      md: 'px-4 py-2 text-sm rounded-xl',
+      lg: 'px-6 py-3 text-base rounded-xl',
     };
 
     return (
