@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, Search, LogOut, User as UserIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -10,6 +11,7 @@ interface TopHeaderProps {
 
 export default function TopHeader({ onMenuClick }: TopHeaderProps) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -106,6 +108,7 @@ export default function TopHeader({ onMenuClick }: TopHeaderProps) {
                   onClick={() => {
                     setDropdownOpen(false);
                     logout();
+                    navigate('/');
                   }}
                 >
                   <LogOut className="w-4 h-4" /> Sign Out

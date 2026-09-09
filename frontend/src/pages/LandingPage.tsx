@@ -445,28 +445,13 @@ export default function LandingPage() {
           </a>
 
           <div className="nav-actions">
-            <div className="engine-badge">
-              <span className="live-dot" />
-              <span className="badge-text">Core v4.9 Active</span>
-            </div>
-            
-            {isAuthenticated ? (
-              <button 
-                onClick={() => navigate('/dashboard')} 
-                className="btn-primary-neon"
-                id="landingDashboardBtn"
-              >
-                Go to Dashboard
-              </button>
-            ) : (
-              <button 
-                onClick={handleLoginClick} 
-                className="btn-primary-neon"
-                id="landingLoginBtn"
-              >
-                Login
-              </button>
-            )}
+            <button 
+              onClick={handleLoginClick} 
+              className="btn-primary-neon"
+              id="landingLoginBtn"
+            >
+              Login
+            </button>
           </div>
         </div>
       </header>
@@ -492,19 +477,8 @@ export default function LandingPage() {
 
             <div className="hero-cta-group" data-reveal>
               <button 
-                onClick={() => navigate(isAuthenticated ? '/upload' : '/login')} 
-                className="btn-hero-primary"
-                id="heroLaunchBtn"
-              >
-                <span>Launch Live ATS Audit</span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
-
-              <button 
                 onClick={() => navigate(isAuthenticated ? '/candidates' : '/login')} 
-                className="btn-hero-secondary"
+                className="btn-hero-primary"
                 id="heroPipelineBtn"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
