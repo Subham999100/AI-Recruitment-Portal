@@ -26,16 +26,23 @@ Never commit `.env` to GitHub.
 
 From the project root:
 
+```bash
 uvicorn Backend.main:app --reload
+```
 
-The backend will start at:
+The backend will start at: `http://127.0.0.1:8000`
+Interactive Swagger Docs: `http://127.0.0.1:8000/docs`
 
-http://127.0.0.1:8000
+---
 
-## API Documentation
+## Run the Frontend
 
-FastAPI automatically provides Swagger documentation.
+From the project root:
 
-Open:
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-http://127.0.0.1:8000/docs
+The frontend will start at: `http://localhost:5173`
