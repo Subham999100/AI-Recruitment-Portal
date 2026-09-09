@@ -1,5 +1,6 @@
-import { api, delay } from './api';
 import { User } from '../types';
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const authService = {
   login: async (credentials: any) => {

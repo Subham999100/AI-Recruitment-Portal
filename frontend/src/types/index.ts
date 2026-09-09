@@ -10,14 +10,14 @@ export interface Candidate {
   id: number;
   name: string;
   email: string;
-  phone: string;
-  location: string;
-  qualification: string;
+  phone?: string;
+  location?: string;
+  qualification?: string;
   experience: number; // in years
   skills: string[];
   status: 'New' | 'Under Review' | 'Shortlisted' | 'Interview Scheduled' | 'Selected' | 'Rejected';
-  matchScore: number;
-  dateAdded: string;
+  matchScore: number | null;
+  dateAdded?: string | null;
   summary?: string;
   education?: {
     degree: string;
@@ -36,10 +36,10 @@ export interface Candidate {
 export interface Job {
   id: number;
   title: string;
-  department: string;
-  location: string;
-  type: string;
-  requiredExperience: number;
+  department?: string;
+  location?: string;
+  type?: string;
+  requiredExperience?: number;
   skills: string[];
   candidateCount: number;
   description?: string;
@@ -55,8 +55,8 @@ export interface DashboardStats {
 export interface MatchResult {
   overallScore: number;
   skillMatch: number;
-  experienceMatch: number;
-  qualificationMatch: number;
+  semanticMatch: number;
+  keywordMatch: number;
   matchedSkills: string[];
   missingSkills: string[];
 }

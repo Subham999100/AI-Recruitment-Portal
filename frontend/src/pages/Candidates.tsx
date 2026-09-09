@@ -61,7 +61,7 @@ export default function Candidates() {
     }
 
     // Sort by match percentage (high matching first)
-    result.sort((a, b) => b.matchScore - a.matchScore);
+    result.sort((a, b) => (b.matchScore ?? -1) - (a.matchScore ?? -1));
 
     setFilteredCandidates(result);
     setCurrentPage(1); // Reset page on filter
@@ -189,8 +189,8 @@ export default function Candidates() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className={`font-bold ${candidate.matchScore >= 85 ? 'text-emerald-400' : candidate.matchScore >= 70 ? 'text-amber-400' : 'text-gray-400'}`}>
-                      {candidate.matchScore}%
+                    <span className={`font-bold ${(candidate.matchScore ?? 0) >= 85 ? 'text-emerald-400' : (candidate.matchScore ?? 0) >= 70 ? 'text-amber-400' : 'text-gray-400'}`}>
+                      {candidate.matchScore === null ? 'Not matched' : `${candidate.matchScore}%`}
                     </span>
                   </TableCell>
                   <TableCell>

@@ -744,8 +744,8 @@ export default function LandingPage() {
                 <div className="t-step">05</div>
                 <div className="t-icon">🤖</div>
                 <h4 className="t-title">Interview Question Generation</h4>
-                <p className="t-desc">Auto-synthesize highly contextual, adaptive interview questions powered by ultra-fast Groq LPUs based on candidate skill gaps.</p>
-                <div className="t-tag">Groq LPU Engine Active</div>
+                <p className="t-desc">Auto-synthesize highly contextual, adaptive interview questions powered by Grok based on candidate skill gaps.</p>
+                <div className="t-tag">Grok Engine Active</div>
               </div>
             </div>
           </div>
@@ -786,7 +786,7 @@ export default function LandingPage() {
                 style={{ background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}
                 className="text-gray-400 hover:text-purple-300 block text-sm mb-2"
               >
-                Groq Question Generator
+                Grok Question Generator
               </button>
             </div>
             <div className="f-col">

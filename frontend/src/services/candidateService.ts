@@ -1,53 +1,102 @@
-import { api, delay } from './api';
-import { mockCandidates } from './mockData';
-import { Candidate, MatchResult } from '../types';
+import { api } from './api';
+import { Candidate, Job, MatchResult } from '../types';
+
+type ApiCandidate = {
+  id: number;
+  name: string;
+  email: string;
+  skills: string[];
+  experience: number;
+  status: Candidate['status'];
+  summary: string;
+  resume_file: string;
+  date_added: string | null;
+  match_score: number | null;
+};
+
+const toCandidate = (candidate: ApiCandidate): Candidate => ({
+  id: candidate.id,
+  name: candidate.name,
+  email: candidate.email,
+  experience: candidate.experience,
+  skills: candidate.skills,
+  status: candidate.status,
+  matchScore: candidate.match_score,
+  dateAdded: candidate.date_added,
+  summary: candidate.summary,
+  resumeFile: candidate.resume_file,
+});
+
+const toJob = (job: any): Job => ({
+  id: job.id,
+  title: job.title,
+  description: job.description,
+  skills: job.skills || [],
+  candidateCount: job.candidate_count || 0,
+});
 
 export const candidateService = {
   getCandidates: async (): Promise<{ data: Candidate[] }> => {
-    // return api.get('/candidates');
-    await delay(300);
-    return { data: [...mockCandidates] };
+    const response = await api.get<{ data: ApiCandidate[] }>('/candidates');
+    return { data: response.data.data.map(toCandidate) };
   },
 
-  addCandidate: async (candidate: Candidate): Promise<{ data: Candidate }> => {
-    await delay(200);
-    const { addMockCandidate } = await import('./mockData');
-    addMockCandidate(candidate);
-    return { data: candidate };
+  uploadResumes: async (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    const response = await api.post('/resumes/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
   },
 
   getCandidateById: async (id: number): Promise<{ data: Candidate }> => {
-    // return api.get(`/candidates/${id}`);
-    await delay(500);
-    const candidate = mockCandidates.find(c => c.id === id);
-    if (!candidate) throw new Error('Candidate not found');
-    return { data: candidate };
+    const response = await api.get<{ data: ApiCandidate }>(`/candidates/${id}`);
+    return { data: toCandidate(response.data.data) };
   },
 
   updateCandidateStatus: async (id: number, status: string): Promise<{ data: Candidate }> => {
-    // return api.patch(`/candidates/${id}/status`, { status });
-    await delay(500);
-    const candidate = mockCandidates.find(c => c.id === id);
-    if (!candidate) throw new Error('Candidate not found');
-    return { data: { ...candidate, status: status as any } };
+    const response = await api.patch<{ data: ApiCandidate }>(`/candidates/${id}/status`, { status });
+    return { data: toCandidate(response.data.data) };
   },
 
   getCandidateMatch: async (id: number): Promise<{ data: MatchResult }> => {
-    // return api.get(`/candidates/${id}/match`);
-    await delay(800);
-    const candidate = mockCandidates.find(c => c.id === id);
-    if (!candidate) throw new Error('Candidate not found');
-    
-    // Generate mock match data based on the candidate
+    const response = await api.get<{ data: any }>(`/candidates/${id}/match`);
+    const match = response.data.data;
     return {
       data: {
-        overallScore: candidate.matchScore,
-        skillMatch: Math.min(100, candidate.matchScore + 3),
-        experienceMatch: Math.min(100, candidate.matchScore - 2),
-        qualificationMatch: Math.min(100, candidate.matchScore + 5),
-        matchedSkills: candidate.skills.slice(0, Math.max(1, candidate.skills.length - 1)),
-        missingSkills: ['Kubernetes', 'GraphQL'] // Mock missing skills
-      }
+        overallScore: match.overall_score,
+        skillMatch: match.skill_match,
+        semanticMatch: match.semantic_match,
+        keywordMatch: match.keyword_match,
+        matchedSkills: match.matched_skills || [],
+        missingSkills: match.missing_skills || [],
+      },
     };
-  }
+  },
+
+  getJobs: async (): Promise<{ data: Job[] }> => {
+    const response = await api.get<{ data: any[] }>('/jobs');
+    return { data: response.data.data.map(toJob) };
+  },
+
+  createJob: async (title: string, description: string): Promise<{ id: number }> => {
+    const response = await api.post<{ data: { job_id: number } }>('/jobs', { title, description });
+    return { id: response.data.data.job_id };
+  },
+
+  createJobFromFile: async (file: File, title: string): Promise<{ id: number }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('title', title);
+    const response = await api.post<{ data: { job_id: number } }>('/jobs/from-file', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return { id: response.data.data.job_id };
+  },
+
+  getMatches: async (jobId: number) => {
+    const response = await api.get<{ job_id: number; matches: unknown[] }>(`/matching/${jobId}`);
+    return response.data;
+  },
 };

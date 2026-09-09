@@ -29,7 +29,6 @@ import {
   ShieldCheck,
   CheckCircle
 } from 'lucide-react';
-import { mockJobs, sampleCandidatePresets } from '../services/mockData';
 import { candidateService } from '../services/candidateService';
 import { interviewService, DEFAULT_GROQ_MODEL } from '../services/interviewService';
 import { Job, Candidate, InterviewKit, InterviewQuestion } from '../types';
@@ -39,13 +38,14 @@ import { Card } from '../components/common/Card';
 
 export default function Jobs() {
   const [activeTab, setActiveTab] = useState<'jobs' | 'generator'>('jobs');
-  const [jobs] = useState<Job[]>(mockJobs);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
 
-  // Groq API Settings State
-  const [groqKey, setGroqKey] = useState<string>('');
-  const [inputGroqKey, setInputGroqKey] = useState<string>('');
+  // Grok API Settings State
+  const [grokKey, setGrokKey] = useState<string>('');
+  const [inputGrokKey, setInputGrokKey] = useState<string>('');
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_GROQ_MODEL);
+  const [availableModels, setAvailableModels] = useState<string[]>([DEFAULT_GROQ_MODEL]);
   const [showKeyDrawer, setShowKeyDrawer] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [keySavedNotification, setKeySavedNotification] = useState<string | null>(null);
@@ -57,9 +57,8 @@ export default function Jobs() {
   const [customJobTitle, setCustomJobTitle] = useState('');
   const [customJobDescription, setCustomJobDescription] = useState('');
 
-  const [selectedCandidateMode, setSelectedCandidateMode] = useState<'existing' | 'preset' | 'custom'>('preset');
+  const [selectedCandidateMode, setSelectedCandidateMode] = useState<'existing' | 'custom'>('custom');
   const [selectedCandidateId, setSelectedCandidateId] = useState<number | ''>('');
-  const [selectedPresetIndex, setSelectedPresetIndex] = useState<number>(0);
   const [customCandidateName, setCustomCandidateName] = useState('');
   const [candidateExperience, setCandidateExperience] = useState<number>(5);
   const [candidateResumeText, setCandidateResumeText] = useState('');
@@ -73,74 +72,47 @@ export default function Jobs() {
   const [copiedAll, setCopiedAll] = useState(false);
 
   useEffect(() => {
-    // 1. Check stored Groq API Key and Model
-    const storedKey = interviewService.getStoredApiKey();
-    if (storedKey) {
-      setGroqKey(storedKey);
-      setInputGroqKey(storedKey);
-    }
-    const storedModel = interviewService.getStoredModel();
-    if (storedModel) {
-      setSelectedModel(storedModel);
-    }
-
-    // 2. Check Backend Groq Status
-    interviewService.checkBackendGroqStatus().then(status => {
-      if (status.configured) {
-        setBackendConfigured(true);
-      }
-    }).catch(() => {});
-
-    // 3. Load existing candidates if any
-    candidateService.getCandidates().then(res => {
-      setCandidates(res.data);
-      if (res.data.length > 0) {
+    Promise.all([
+      candidateService.getJobs(),
+      candidateService.getCandidates(),
+      interviewService.checkBackendGroqStatus(),
+    ]).then(([jobResponse, candidateResponse, status]) => {
+      setJobs(jobResponse.data);
+      setCandidates(candidateResponse.data);
+      setBackendConfigured(status.configured);
+      if (status.default_model) setSelectedModel(status.default_model);
+      if (status.supported_models?.length) setAvailableModels(status.supported_models);
+      if (jobResponse.data.length > 0) setSelectedJobId(jobResponse.data[0].id);
+      if (candidateResponse.data.length > 0) {
+        const candidate = candidateResponse.data[0];
         setSelectedCandidateMode('existing');
-        setSelectedCandidateId(res.data[0].id);
-        setCandidateExperience(res.data[0].experience);
-        setCandidateResumeText(res.data[0].summary || `${res.data[0].name} has ${res.data[0].experience} years of experience in ${res.data[0].skills.join(', ')}.`);
-      } else {
-        applyPreset(0);
+        setSelectedCandidateId(candidate.id);
+        setCandidateExperience(candidate.experience);
+        setCandidateResumeText(candidate.summary || '');
       }
-    }).catch(() => {
-      applyPreset(0);
-    });
+    }).catch(() => setGenerationError('Unable to load jobs, candidates, or AI service status. Start the FastAPI backend and retry.'));
   }, []);
 
-  const handleSaveGroqKey = () => {
-    const trimmed = inputGroqKey.trim();
+  const handleSaveGrokKey = () => {
+    const trimmed = inputGrokKey.trim();
     if (trimmed) {
-      interviewService.setStoredApiKey(trimmed);
-      setGroqKey(trimmed);
-      setKeySavedNotification('Groq API Key saved securely in your browser!');
+      setGrokKey(trimmed);
+      setKeySavedNotification('Browser-managed API keys are disabled. Configure GROQ_API_KEY on the backend instead.');
       setTimeout(() => setKeySavedNotification(null), 3000);
       setShowKeyDrawer(false);
       setGenerationError(null);
     }
   };
 
-  const handleClearGroqKey = () => {
-    interviewService.clearStoredApiKey();
-    setGroqKey('');
-    setInputGroqKey('');
-    setKeySavedNotification('Groq API Key removed.');
+  const handleClearGrokKey = () => {
+    setGrokKey('');
+    setInputGrokKey('');
+    setKeySavedNotification('Grok API key removed.');
     setTimeout(() => setKeySavedNotification(null), 3000);
   };
 
   const handleModelChange = (model: string) => {
     setSelectedModel(model);
-    interviewService.setStoredModel(model);
-  };
-
-  const applyPreset = (index: number) => {
-    const preset = sampleCandidatePresets[index];
-    if (preset) {
-      setSelectedCandidateMode('preset');
-      setSelectedPresetIndex(index);
-      setCustomCandidateName(preset.name);
-      setCandidateExperience(preset.experience);
-      setCandidateResumeText(preset.resume);
-    }
   };
 
   const handleSelectJob = (job: Job) => {
@@ -157,8 +129,8 @@ export default function Jobs() {
     }
     const found = jobs.find(j => j.id === selectedJobId) || jobs[0];
     return {
-      title: found.title,
-      description: found.description || `Requirements: ${found.skills.join(', ')}. Minimum ${found.requiredExperience} years of experience.`
+      title: found?.title || 'Select a job',
+      description: found?.description || ''
     };
   };
 
@@ -173,14 +145,6 @@ export default function Jobs() {
         };
       }
     }
-    if (selectedCandidateMode === 'preset') {
-      const preset = sampleCandidatePresets[selectedPresetIndex] || sampleCandidatePresets[0];
-      return {
-        name: preset.name,
-        experience: candidateExperience,
-        resume: candidateResumeText || preset.resume
-      };
-    }
     return {
       name: customCandidateName || 'Candidate',
       experience: candidateExperience,
@@ -188,7 +152,7 @@ export default function Jobs() {
     };
   };
 
-  const handleGenerateQuestions = async (overrideApiKey?: string) => {
+  const handleGenerateQuestions = async () => {
     setIsGenerating(true);
     setGenerationStep(1);
     setGenerationError(null);
@@ -207,7 +171,6 @@ export default function Jobs() {
         candidateName: candidate.name,
         candidateResume: candidate.resume,
         candidateExperience: candidateExperience,
-        apiKey: overrideApiKey ?? (groqKey || undefined),
         model: selectedModel
       });
 
@@ -218,7 +181,7 @@ export default function Jobs() {
       }, 150);
     } catch (err: any) {
       console.error(err);
-      setGenerationError(err?.message || 'Error occurred while generating with Groq API. Check your API key or use calibrated mode.');
+      setGenerationError(err?.message || 'Error occurred while generating with Grok API. Check your API key or use calibrated mode.');
     } finally {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -236,7 +199,7 @@ export default function Jobs() {
   const handleCopyAll = () => {
     if (!generatedKit) return;
     const content = `INTERVIEW QUESTIONS FOR ${generatedKit.candidateName.toUpperCase()} - ${generatedKit.jobTitle.toUpperCase()}
-Engine: ${generatedKit.source === 'groq-llm' ? `Groq LLM (${generatedKit.model || 'Llama 3.3'})` : 'Calibrated Algorithmic Model'}
+  Engine: ${generatedKit.source === 'groq-llm' ? `Groq (${generatedKit.model || 'Llama 3.3'})` : 'Calibrated Algorithmic Model'}
 Experience: ${generatedKit.candidateExperience} Years
 Match Score: ${generatedKit.matchedScore}%
 Date: ${generatedKit.generatedAt}
@@ -268,7 +231,7 @@ Follow-up Probe: ${q.followUpProbe}
     return 'bg-amber-50 text-amber-700 border-amber-200';
   };
 
-  const isGroqActive = Boolean(groqKey || backendConfigured);
+  const isGrokActive = backendConfigured;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
@@ -285,7 +248,7 @@ Follow-up Probe: ${q.followUpProbe}
             Jobs & AI Interview Kits
           </h1>
           <p className="text-gray-300 text-sm leading-relaxed">
-            Manage open positions and generate tailored interview questions calibrated directly against the candidate's resume, job description, and years of experience using Groq's high-speed inference.
+            Manage open positions and generate tailored interview questions calibrated directly against the candidate's resume, job description, and years of experience using Grok's high-speed inference.
           </p>
         </div>
 
@@ -345,27 +308,12 @@ Follow-up Probe: ${q.followUpProbe}
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <span className="text-xs font-semibold px-2.5 py-1 bg-purple-500/15 border border-purple-500/30 text-[#c084fc] rounded-lg">
-                        {job.department}
+                        {job.candidateCount} matched candidate{job.candidateCount === 1 ? '' : 's'}
                       </span>
                       <h3 className="text-lg font-bold text-white mt-2 group-hover:text-[#c084fc] transition-colors">
                         {job.title}
                       </h3>
                     </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-y-2 text-xs text-gray-400 gap-x-4">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                      {job.location}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-gray-400" />
-                      {job.type}
-                    </span>
-                    <span className="flex items-center gap-1 font-medium text-amber-300">
-                      <Award className="w-3.5 h-3.5 text-amber-400" />
-                      {job.requiredExperience}+ Yrs Exp
-                    </span>
                   </div>
 
                   <p className="text-xs text-gray-300 line-clamp-3 leading-relaxed">
@@ -412,7 +360,7 @@ Follow-up Probe: ${q.followUpProbe}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-8"
         >
-          {/* GROQ API CONFIGURATION BAR */}
+          {/* GROK API CONFIGURATION BAR */}
           <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl border border-indigo-500/20 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -z-0 pointer-events-none" />
 
@@ -423,8 +371,8 @@ Follow-up Probe: ${q.followUpProbe}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-base text-white">Groq LPU Inference Engine</h3>
-                    {isGroqActive ? (
+                    <h3 className="font-bold text-base text-white">Grok Inference Engine</h3>
+                      {isGrokActive ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                         Connected ({selectedModel.split('-').slice(0, 3).join(' ')})
@@ -432,12 +380,12 @@ Follow-up Probe: ${q.followUpProbe}
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold">
                         <Key className="w-3 h-3" />
-                        Key Not Set (Algorithmic Fallback)
+                        Backend Key Not Configured
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-gray-300 mt-1 max-w-xl">
-                    Ultra-low latency question synthesis powered by Groq. Tailors technical, project, and leadership inquiries using candidate resume + JD + experience.
+                    Fast question synthesis powered by Grok. Tailors technical, project, and leadership inquiries using candidate resume + JD + experience.
                   </p>
                 </div>
               </div>
@@ -445,11 +393,11 @@ Follow-up Probe: ${q.followUpProbe}
               <div className="flex items-center gap-3">
                 <Button
                   size="sm"
-                  onClick={() => setShowKeyDrawer(!showKeyDrawer)}
+                  disabled
                   className="bg-white/10 hover:bg-white/20 text-white border border-white/20 gap-2 text-xs font-semibold backdrop-blur-sm"
                 >
-                  <Key className="w-3.5 h-3.5 text-indigo-300" />
-                  <span>{showKeyDrawer ? 'Close Settings' : isGroqActive ? 'Configure Groq Key & Model' : 'Connect Groq API Key'}</span>
+                  <Cpu className="w-3.5 h-3.5 text-indigo-300" />
+                  <span>Configure backend .env</span>
                 </Button>
               </div>
             </div>
@@ -468,7 +416,7 @@ Follow-up Probe: ${q.followUpProbe}
 
             {/* Expandable Configuration Drawer */}
             <AnimatePresence>
-              {showKeyDrawer && (
+              {false && showKeyDrawer && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -489,7 +437,7 @@ Follow-up Probe: ${q.followUpProbe}
                           rel="noreferrer"
                           className="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 underline"
                         >
-                          Get Free Groq Key
+                          Get Groq Key
                           <ExternalLink className="w-3 h-3" />
                         </a>
                       </label>
@@ -497,8 +445,8 @@ Follow-up Probe: ${q.followUpProbe}
                         <input
                           type={showPassword ? 'text' : 'password'}
                           placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                          value={inputGroqKey}
-                          onChange={(e) => setInputGroqKey(e.target.value)}
+                          value={inputGrokKey}
+                          onChange={(e) => setInputGrokKey(e.target.value)}
                           className="w-full bg-black/40 border border-white/20 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-400 pr-24"
                         />
                         <button
@@ -525,24 +473,14 @@ Follow-up Probe: ${q.followUpProbe}
                         onChange={(e) => handleModelChange(e.target.value)}
                         className="w-full bg-black/40 border border-white/20 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-400"
                       >
-                        <option value="openai/gpt-oss-20b" className="bg-dark-900 text-white">
-                          GPT-OSS 20B (Recommended, Ultra Fast)
-                        </option>
-                        <option value="qwen/qwen3.8-27b" className="bg-dark-900 text-white">
-                          Qwen 3.8 27B (High Capability)
-                        </option>
-                        <option value="openai/gpt-oss-120b" className="bg-dark-900 text-white">
-                          GPT-OSS 120B (Frontier Deep Reasoning)
-                        </option>
-                        <option value="llama-3.3-70b-versatile" className="bg-dark-900 text-white">
-                          Llama 3.3 70B Versatile
-                        </option>
-                        <option value="llama-3.1-8b-instant" className="bg-dark-900 text-white">
-                          Llama 3.1 8B Instant
-                        </option>
+                        {availableModels.map((model) => (
+                          <option key={model} value={model} className="bg-dark-900 text-white">
+                            {model}
+                          </option>
+                        ))}
                       </select>
                       <p className="text-[11px] text-gray-400">
-                        Groq LPU hardware powers real-time question generation in ~2 seconds.
+                        Grok powers real-time question generation.
                       </p>
                     </div>
                   </div>
@@ -555,11 +493,11 @@ Follow-up Probe: ${q.followUpProbe}
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {groqKey && (
+                      {grokKey && (
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={handleClearGroqKey}
+                          onClick={handleClearGrokKey}
                           className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 gap-1.5"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -568,7 +506,7 @@ Follow-up Probe: ${q.followUpProbe}
                       )}
                       <Button
                         size="sm"
-                        onClick={handleSaveGroqKey}
+                        onClick={handleSaveGrokKey}
                         className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-md gap-1.5"
                       >
                         <Check className="w-3.5 h-3.5" />
@@ -590,21 +528,22 @@ Follow-up Probe: ${q.followUpProbe}
             >
               <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
               <div className="space-y-1 flex-1">
-                <strong className="font-semibold block text-sm">Groq Generation Encountered an Issue</strong>
+                <strong className="font-semibold block text-sm">Grok Generation Encountered an Issue</strong>
+                                <strong className="font-semibold block text-sm">Grok Generation Encountered an Issue</strong>
                 <p>{generationError}</p>
                 <div className="pt-2 flex items-center gap-3">
                   <button
-                    onClick={() => setShowKeyDrawer(true)}
+                    onClick={() => window.location.reload()}
                     className="font-bold underline hover:text-rose-900"
                   >
-                    Check / Update Groq Key
+                    Retry after configuring the backend
                   </button>
                   <span>•</span>
                   <button
-                    onClick={() => handleGenerateQuestions('')}
+                    onClick={handleGenerateQuestions}
                     className="font-bold underline hover:text-rose-900"
                   >
-                    Use Algorithmic Mode Instead
+                    Retry generation
                   </button>
                 </div>
               </div>
@@ -734,15 +673,6 @@ Follow-up Probe: ${q.followUpProbe}
                     )}
                     <button
                       type="button"
-                      onClick={() => setSelectedCandidateMode('preset')}
-                      className={`flex-1 py-2 rounded-lg transition-all ${
-                        selectedCandidateMode === 'preset' ? 'bg-purple-600 text-white shadow-sm font-bold' : 'text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      Preset Profiles
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setSelectedCandidateMode('custom')}
                       className={`flex-1 py-2 rounded-lg transition-all ${
                         selectedCandidateMode === 'custom' ? 'bg-purple-600 text-white shadow-sm font-bold' : 'text-gray-400 hover:text-white'
@@ -751,27 +681,6 @@ Follow-up Probe: ${q.followUpProbe}
                       Paste Resume
                     </button>
                   </div>
-
-                  {/* Preset Selector */}
-                  {selectedCandidateMode === 'preset' && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {sampleCandidatePresets.map((p, idx) => (
-                        <button
-                          key={p.name}
-                          type="button"
-                          onClick={() => applyPreset(idx)}
-                          className={`p-2.5 text-left rounded-xl border text-xs transition-all ${
-                            selectedPresetIndex === idx
-                              ? 'bg-purple-500/20 border-[#a855f7] text-white font-bold ring-2 ring-purple-500/30'
-                              : 'bg-white/5 border-white/10 text-gray-300 hover:border-white/20 hover:text-white'
-                          }`}
-                        >
-                          <p className="truncate font-semibold">{p.name}</p>
-                          <p className="text-[10px] text-gray-400 font-normal">{p.experience} Yrs Exp</p>
-                        </button>
-                      ))}
-                    </div>
-                  )}
 
                   {/* Existing candidate dropdown */}
                   {selectedCandidateMode === 'existing' && candidates.length > 0 && (
@@ -871,12 +780,13 @@ Follow-up Probe: ${q.followUpProbe}
                 {isGenerating ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Groq LLM Generating Questions...</span>
+                    <span>Grok Generating Questions...</span>
                   </>
-                ) : isGroqActive ? (
+                ) : isGrokActive ? (
                   <>
                     <Cpu className="w-4 h-4 text-purple-200" />
-                    <span>Generate with Groq AI</span>
+                    <span>Generate with Grok AI</span>
+                                      <span>Generate with Grok AI</span>
                   </>
                 ) : (
                   <>
@@ -903,7 +813,8 @@ Follow-up Probe: ${q.followUpProbe}
 
                 <div className="space-y-2">
                   <h3 className="text-lg font-bold text-gray-900">
-                    {isGroqActive ? 'Groq LPU Accelerating Question Synthesis' : 'Synthesizing Tailored Interview Kit'}
+                    {isGrokActive ? 'Grok Accelerating Question Synthesis' : 'Synthesizing Tailored Interview Kit'}
+                                      {isGrokActive ? 'Grok Accelerating Question Synthesis' : 'Synthesizing Tailored Interview Kit'}
                   </h3>
                   <p className="text-xs text-gray-500">
                     Evaluating JD requirements against candidate's background at {candidateExperience} years experience tier.
@@ -957,7 +868,7 @@ Follow-up Probe: ${q.followUpProbe}
                     {generatedKit.source === 'groq-llm' ? (
                       <span className="px-3 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5">
                         <Cpu className="w-3.5 h-3.5 text-purple-200" />
-                        <span>Groq AI ({generatedKit.model?.split('-').slice(0, 3).join(' ') || 'Llama 3.3'})</span>
+                        <span>Grok AI ({generatedKit.model?.split('-').slice(0, 3).join(' ') || 'Grok 3 Mini'})</span>
                       </span>
                     ) : (
                       <span className="px-3 py-1 bg-white/5 border border-white/10 text-gray-300 text-xs font-semibold rounded-lg flex items-center gap-1">

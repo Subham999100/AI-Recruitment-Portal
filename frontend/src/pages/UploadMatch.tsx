@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { UploadCloud, FileText, CheckCircle, ArrowRight, Sparkles, X, FileBadge } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { candidateService } from '../services/candidateService';
-import { Candidate } from '../types';
 
 export default function UploadMatch() {
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Resume, 2: JD, 3: Processing
   const [resumeFiles, setResumeFiles] = useState<File[]>([]);
   const [jdFile, setJdFile] = useState<File | null>(null);
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
   const [progress, setProgress] = useState(0);
+  const [processingError, setProcessingError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -21,7 +23,13 @@ export default function UploadMatch() {
       if (type === 'resume') {
         setResumeFiles(prev => [...prev, ...Array.from(e.target.files!)]);
       } else {
-        setJdFile(e.target.files[0]);
+        const file = e.target.files[0];
+        setJdFile(file);
+        if (file.name.toLowerCase().endsWith('.txt')) {
+          void file.text().then(setJobDescription).catch(() => {
+            setProcessingError('The job description file could not be read. Paste the description below instead.');
+          });
+        }
       }
     }
   };
@@ -51,7 +59,13 @@ export default function UploadMatch() {
       if (type === 'resume') {
         setResumeFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
       } else {
-        setJdFile(e.dataTransfer.files[0]);
+        const file = e.dataTransfer.files[0];
+        setJdFile(file);
+        if (file.name.toLowerCase().endsWith('.txt')) {
+          void file.text().then(setJobDescription).catch(() => {
+            setProcessingError('The job description file could not be read. Paste the description below instead.');
+          });
+        }
       }
     }
   };
@@ -66,47 +80,33 @@ export default function UploadMatch() {
 
   const handleNextStep = () => {
     if (step === 1 && resumeFiles.length > 0) setStep(2);
-    else if (step === 2 && jdFile) {
+    else if (step === 2 && (jdFile || jobDescription.trim())) {
       setStep(3);
-      simulateProcessing();
+      void processApplications();
     }
   };
 
-  const simulateProcessing = async () => {
-    let current = 0;
-    const interval = setInterval(() => {
-      current += Math.random() * 8 + 2;
-      if (current >= 100) current = 100;
-      setProgress(current);
-      if (current >= 100) {
-        clearInterval(interval);
+  const processApplications = async () => {
+    setProcessingError('');
+    setProgress(10);
+    try {
+      const upload = await candidateService.uploadResumes(resumeFiles);
+      if (upload.successful_resumes.length === 0) {
+        throw new Error(upload.failed_resumes[0]?.error || 'No resumes could be processed.');
       }
-    }, 200);
-
-    // Mock delay for UI to show 100% processing for a moment
-    setTimeout(async () => {
-      const newCandidates: Candidate[] = resumeFiles.map((file, i) => ({
-        id: Math.floor(Math.random() * 10000),
-        name: file.name.split('.')[0].replace(/[-_]/g, ' '),
-        email: `${file.name.split('.')[0].toLowerCase()}@example.com`,
-        phone: '+1 (555) 000-0000',
-        location: 'Remote',
-        qualification: 'Bachelors Degree',
-        experience: Math.floor(Math.random() * 5) + 2,
-        skills: ['React', 'Node.js', 'TypeScript', 'AWS', 'Python', 'Machine Learning'].sort(() => 0.5 - Math.random()).slice(0, 4),
-        status: 'New',
-        matchScore: Math.floor(Math.random() * 20) + 75,
-        dateAdded: new Date().toISOString().split('T')[0],
-        summary: 'Auto-extracted candidate profile based on uploaded resume matched against the JD.',
-        resumeFile: file.name
-      }));
-
-      for (const candidate of newCandidates) {
-        await candidateService.addCandidate(candidate);
-      }
-
+      setProgress(45);
+      const job = jdFile
+        ? await candidateService.createJobFromFile(jdFile, jobTitle.trim())
+        : await candidateService.createJob(jobTitle.trim() || 'Job Description', jobDescription.trim());
+      setProgress(70);
+      await candidateService.getMatches(job.id);
+      setProgress(100);
       navigate('/candidates');
-    }, 4000);
+    } catch (error: any) {
+      setProcessingError(error?.response?.data?.detail || error?.message || 'Unable to process the job and resumes.');
+      setStep(2);
+      setProgress(0);
+    }
   };
 
   // --- Animation Variants ---
@@ -205,7 +205,7 @@ export default function UploadMatch() {
                 >
                   <div className="text-center space-y-2">
                     <h2 className="text-2xl font-bold text-white">Add Candidate Resumes</h2>
-                    <p className="text-gray-400 text-sm">PDF, DOC, or DOCX formats supported up to 10MB each.</p>
+                    <p className="text-gray-400 text-sm">PDF resumes are supported up to 10MB each.</p>
                   </div>
                   
                   <div 
@@ -229,7 +229,7 @@ export default function UploadMatch() {
                         type="file" 
                         multiple
                         className="hidden" 
-                        accept=".pdf,.doc,.docx"
+                        accept="application/pdf,.pdf"
                         onChange={(e) => handleFileChange(e, 'resume')}
                       />
                       
@@ -331,7 +331,29 @@ export default function UploadMatch() {
                 >
                   <div className="text-center space-y-2">
                     <h2 className="text-2xl font-bold text-white">Target Job Description</h2>
-                    <p className="text-gray-400 text-sm">Upload the JD to accurately score and match the candidates.</p>
+                    <p className="text-gray-400 text-sm">Provide the role title and description used for real candidate matching.</p>
+                  </div>
+
+                  {processingError && (
+                    <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+                      {processingError}
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <input
+                      value={jobTitle}
+                      onChange={(event) => setJobTitle(event.target.value)}
+                      placeholder="Job title, e.g. Backend Developer"
+                      className="w-full rounded-xl border border-white/15 bg-[rgba(8,4,14,0.85)] px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-[#a855f7]"
+                    />
+                    <textarea
+                      value={jobDescription}
+                      onChange={(event) => setJobDescription(event.target.value)}
+                      placeholder="Paste the complete job description and required skills"
+                      rows={8}
+                      className="w-full resize-y rounded-xl border border-white/15 bg-[rgba(8,4,14,0.85)] px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:border-[#a855f7]"
+                    />
                   </div>
                   
                   <div 
@@ -354,7 +376,7 @@ export default function UploadMatch() {
                         ref={fileInputRef}
                         type="file" 
                         className="hidden" 
-                        accept=".pdf,.doc,.docx,.txt"
+                        accept="application/pdf,.pdf,text/plain,.txt"
                         onChange={(e) => handleFileChange(e, 'jd')}
                       />
                       
@@ -368,7 +390,7 @@ export default function UploadMatch() {
                         <span className="text-lg text-white font-semibold mb-2">
                           {isDragging ? 'Drop JD here' : 'Click or drag JD here'}
                         </span>
-                        <span className="text-sm text-gray-400">PDF, DOC, TXT supported.</span>
+                        <span className="text-sm text-gray-400">PDF or TXT formats supported. A PDF is parsed securely by the backend.</span>
                       </div>
                     </motion.div>
                   </div>
@@ -407,7 +429,7 @@ export default function UploadMatch() {
                     <motion.button 
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      disabled={!jdFile}
+                      disabled={!jdFile && !jobDescription.trim()}
                       onClick={handleNextStep}
                       className="px-8 py-3.5 rounded-xl font-semibold text-white bg-gradient-to-r from-[#9333ea] via-[#a855f7] to-[#c084fc] shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] border border-purple-400/30 transition-all duration-300 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     >

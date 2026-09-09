@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import uuid
 
 from Backend.database import get_db_connection
 from Backend.embeddings import create_embedding
@@ -8,6 +9,13 @@ from Backend.pdf_parser import extract_text_from_pdf
 
 
 UPLOAD_FOLDER = "uploads/resumes"
+
+KNOWN_SKILLS = [
+    "Python", "Java", "JavaScript", "TypeScript", "React", "Node.js",
+    "FastAPI", "Django", "Flask", "SQL", "PostgreSQL", "MySQL",
+    "MongoDB", "Docker", "Kubernetes", "AWS", "Azure", "GCP",
+    "Machine Learning", "PyTorch", "TensorFlow", "Git", "REST API",
+]
 
 
 def extract_candidate_info(text):
@@ -29,6 +37,15 @@ def extract_candidate_info(text):
     return name, email
 
 
+def extract_resume_metadata(text):
+    normalized = text.lower()
+    skills = [skill for skill in KNOWN_SKILLS if skill.lower() in normalized]
+    experience_matches = re.findall(r"(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)", normalized)
+    experience = max((float(value) for value in experience_matches), default=0)
+    summary = " ".join(line.strip() for line in text.splitlines() if line.strip())[:600]
+    return skills, experience, summary
+
+
 def process_resume(file):
     """
     Process one resume and save it to the database.
@@ -36,12 +53,13 @@ def process_resume(file):
 
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-    filename = os.path.basename(file.filename)
+    filename = os.path.basename(file.filename or "")
 
     if not filename.lower().endswith(".pdf"):
         raise ValueError("File is not a PDF")
 
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    stored_filename = f"{uuid.uuid4().hex}_{filename}"
+    file_path = os.path.join(UPLOAD_FOLDER, stored_filename)
 
     # Save PDF
     with open(file_path, "wb") as output_file:
@@ -55,6 +73,7 @@ def process_resume(file):
 
     # Extract basic candidate information
     name, email = extract_candidate_info(resume_text)
+    skills, experience, summary = extract_resume_metadata(resume_text)
 
     # Create embedding
     embedding = create_embedding(resume_text)
@@ -67,15 +86,18 @@ def process_resume(file):
     cursor.execute(
         """
         INSERT INTO candidates
-        (name, email, resume_filename, resume_text, embedding)
-        VALUES (?, ?, ?, ?, ?)
+        (name, email, resume_filename, resume_text, embedding, skills, experience, summary, uploaded_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         """,
         (
             name,
             email,
-            filename,
+            stored_filename,
             resume_text,
-            json.dumps(embedding)
+            json.dumps(embedding),
+            json.dumps(skills),
+            experience,
+            summary,
         )
     )
 
@@ -86,5 +108,8 @@ def process_resume(file):
 
     return {
         "candidate_id": candidate_id,
-        "filename": filename
+        "filename": filename,
+        "name": name,
+        "skills": skills,
+        "experience": experience,
     }

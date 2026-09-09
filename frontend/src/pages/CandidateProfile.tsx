@@ -25,13 +25,14 @@ export default function CandidateProfile() {
       setIsLoading(true);
       try {
         const candidateId = parseInt(id || '0', 10);
-        const [candidateRes, matchRes] = await Promise.all([
-          candidateService.getCandidateById(candidateId),
-          candidateService.getCandidateMatch(candidateId)
-        ]);
-        
+        const candidateRes = await candidateService.getCandidateById(candidateId);
         setCandidate(candidateRes.data);
-        setMatchResult(matchRes.data);
+        try {
+          const matchRes = await candidateService.getCandidateMatch(candidateId);
+          setMatchResult(matchRes.data);
+        } catch {
+          setMatchResult(null);
+        }
       } catch (err) {
         setError('Failed to load candidate details.');
       } finally {
@@ -45,6 +46,15 @@ export default function CandidateProfile() {
   if (isLoading) return <LoadingSpinner className="min-h-[60vh]" />;
   if (error || !candidate) return <div className="text-red-500 p-4">{error || 'Candidate not found'}</div>;
 
+  const updateStatus = async (status: 'Shortlisted' | 'Rejected') => {
+    try {
+      const response = await candidateService.updateCandidateStatus(candidate.id, status);
+      setCandidate(response.data);
+    } catch {
+      setError('Unable to update the candidate status.');
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header Actions */}
@@ -56,8 +66,8 @@ export default function CandidateProfile() {
           <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Candidates
         </button>
         <div className="flex items-center gap-3">
-          <Button variant="outline">Reject</Button>
-          <Button>Shortlist Candidate</Button>
+          <Button variant="outline" onClick={() => updateStatus('Rejected')}>Reject</Button>
+          <Button onClick={() => updateStatus('Shortlisted')}>Shortlist Candidate</Button>
         </div>
       </div>
 
@@ -72,15 +82,15 @@ export default function CandidateProfile() {
                   <div className="flex justify-between items-start">
                     <div>
                       <h1 className="text-2xl font-bold text-white">{candidate.name}</h1>
-                      <p className="text-gray-400 mt-1 text-sm">{candidate.qualification} • {candidate.experience} years experience</p>
+                      <p className="text-gray-400 mt-1 text-sm">{candidate.experience} years experience</p>
                     </div>
                     <StatusBadge status={candidate.status} />
                   </div>
                   
                   <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-300">
                     <div className="flex items-center gap-2"><Mail className="w-4 h-4 text-[#c084fc]" /> {candidate.email}</div>
-                    <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-[#c084fc]" /> {candidate.phone}</div>
-                    <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-[#c084fc]" /> {candidate.location}</div>
+                    {candidate.phone && <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-[#c084fc]" /> {candidate.phone}</div>}
+                    {candidate.location && <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-[#c084fc]" /> {candidate.location}</div>}
                   </div>
                 </div>
               </div>
@@ -182,8 +192,8 @@ export default function CandidateProfile() {
 
                 <div className="space-y-4">
                   <ProgressBar showValue value={matchResult.skillMatch} className="text-xs" />
-                  <ProgressBar showValue value={matchResult.experienceMatch} className="text-xs" colorClass="bg-gradient-to-r from-purple-500 to-indigo-500" />
-                  <ProgressBar showValue value={matchResult.qualificationMatch} className="text-xs" colorClass="bg-gradient-to-r from-fuchsia-500 to-pink-500" />
+                  <ProgressBar showValue value={matchResult.semanticMatch} className="text-xs" colorClass="bg-gradient-to-r from-purple-500 to-indigo-500" />
+                  <ProgressBar showValue value={matchResult.keywordMatch} className="text-xs" colorClass="bg-gradient-to-r from-fuchsia-500 to-pink-500" />
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-white/10">

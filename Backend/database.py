@@ -9,6 +9,17 @@ def get_db_connection():
     return connection
 
 
+def _add_column_if_missing(cursor, table, column_definition):
+    """Apply additive migrations safely for existing local SQLite databases."""
+    column_name = column_definition.split()[0]
+    columns = {
+        row["name"]
+        for row in cursor.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+    if column_name not in columns:
+        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column_definition}")
+
+
 def create_tables():
     connection = get_db_connection()
     cursor = connection.cursor()
@@ -24,6 +35,13 @@ def create_tables():
         )
     """)
 
+    # Keep existing databases usable while adding the fields the portal needs.
+    _add_column_if_missing(cursor, "candidates", "status TEXT NOT NULL DEFAULT 'New'")
+    _add_column_if_missing(cursor, "candidates", "skills TEXT NOT NULL DEFAULT '[]'")
+    _add_column_if_missing(cursor, "candidates", "experience REAL NOT NULL DEFAULT 0")
+    _add_column_if_missing(cursor, "candidates", "summary TEXT")
+    _add_column_if_missing(cursor, "candidates", "uploaded_at TEXT")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,6 +50,22 @@ def create_tables():
             embedding TEXT,
             skills TEXT,
             keywords TEXT
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS candidate_matches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            job_id INTEGER NOT NULL,
+            candidate_id INTEGER NOT NULL,
+            match_score REAL NOT NULL,
+            semantic_score REAL NOT NULL,
+            skill_score REAL NOT NULL,
+            keyword_score REAL NOT NULL,
+            matched_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(job_id, candidate_id),
+            FOREIGN KEY (job_id) REFERENCES jobs(id),
+            FOREIGN KEY (candidate_id) REFERENCES candidates(id)
         )
     """)
 

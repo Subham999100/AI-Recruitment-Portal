@@ -10,7 +10,7 @@ def create_job(title, description):
     # Create embedding for the job description
     embedding = create_embedding(description)
 
-    # Extract skills and keywords using Groq
+    # Extract skills and keywords using Grok
     analysis = extract_skills_and_keywords(description)
 
     skills = analysis["skills"]

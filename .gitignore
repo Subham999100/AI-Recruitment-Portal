@@ -5,13 +5,20 @@ frontend/dist/
 **/node_modules/
 **/dist/
 venv/
+.venv/
+.venv-*/
 .env
+.env.*
+!.env.example
+!frontend/.env.example
 .DS_Store
 __pycache__/
 *.pyc
 recruitment.db
+*.db
 uploads/resumes/
 node-dist/
 node.zip
+*.zip
 .firebase/
 

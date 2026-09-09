@@ -161,9 +161,9 @@ export default function Dashboard() {
                   <div className="text-right flex flex-col items-end gap-2">
                     <StatusBadge status={candidate.status} />
                     <div className="w-28 relative group">
-                      <ProgressBar value={candidate.matchScore} className="h-2" colorClass={candidate.matchScore > 85 ? 'bg-gradient-to-r from-emerald-400 to-teal-400' : 'bg-gradient-to-r from-purple-400 to-[#c084fc]'} />
+                      <ProgressBar value={candidate.matchScore ?? 0} className="h-2" colorClass={(candidate.matchScore ?? 0) > 85 ? 'bg-gradient-to-r from-emerald-400 to-teal-400' : 'bg-gradient-to-r from-purple-400 to-[#c084fc]'} />
                       <span className="text-[10px] font-bold text-gray-400 mt-1 block tracking-wider uppercase">
-                        {candidate.matchScore}% Match
+                        {candidate.matchScore === null ? 'Not matched' : `${candidate.matchScore}% Match`}
                       </span>
                     </div>
                   </div>
@@ -203,7 +203,7 @@ export default function Dashboard() {
                     <h4 className="text-base font-bold text-white">{job.title}</h4>
                     <p className="text-xs text-gray-400 flex items-center gap-1.5 mt-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#c084fc]" />
-                      {job.department} • {job.location}
+                      {job.description}
                     </p>
                   </div>
                   <div className="flex flex-col items-end">

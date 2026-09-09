@@ -82,7 +82,7 @@ def calculate_semantic_score(job_embedding, candidate_embedding):
     return score
 
 
-def get_top_candidates(job_id, top_n=5):
+def get_top_candidates(job_id, top_n=None):
 
     connection = get_db_connection()
 
@@ -109,8 +109,6 @@ def get_top_candidates(job_id, top_n=5):
     candidates = connection.execute(
         "SELECT * FROM candidates"
     ).fetchall()
-
-    connection.close()
 
     matches = []
 
@@ -170,10 +168,31 @@ def get_top_candidates(job_id, top_n=5):
             "keyword_score": round(keyword_score, 2)
         })
 
+        connection.execute(
+            """
+            INSERT INTO candidate_matches
+            (job_id, candidate_id, match_score, semantic_score, skill_score, keyword_score)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(job_id, candidate_id) DO UPDATE SET
+                match_score = excluded.match_score,
+                semantic_score = excluded.semantic_score,
+                skill_score = excluded.skill_score,
+                keyword_score = excluded.keyword_score,
+                matched_at = CURRENT_TIMESTAMP
+            """,
+            (
+                job_id, candidate["id"], round(final_score, 2),
+                round(semantic_score, 2), round(skill_score, 2), round(keyword_score, 2),
+            ),
+        )
+
+    connection.commit()
+    connection.close()
+
     # Highest score first
     matches.sort(
         key=lambda candidate: candidate["match_score"],
         reverse=True
     )
 
-    return matches[:top_n]
+    return matches[:top_n] if top_n else matches

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -9,14 +9,10 @@ export const api = axios.create({
   },
 });
 
-// Add a request interceptor to inject the token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+export const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+    if (typeof detail === 'string') return detail;
   }
-  return config;
-});
-
-// Helper for simulating network delay in mock services
-export const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  return fallback;
+};
