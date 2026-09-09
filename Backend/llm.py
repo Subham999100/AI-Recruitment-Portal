@@ -120,61 +120,59 @@ def generate_interview_kit_llm(
     exp_years = float(candidate_experience)
     if exp_years >= 8:
         exp_tier = "Lead / Architect (8+ Yrs)"
-        focus_guideline = "Focus on enterprise architecture, technical strategy, cross-team alignment, mitigating high-stakes technical debt, scalability bottlenecks, and mentorship."
+        difficulty = "Expert"
+        focus_guideline = "Focus on enterprise architecture, scaling bottlenecks, technical governance, and cross-team trade-offs."
     elif exp_years >= 5:
         exp_tier = "Senior (5-8 Yrs)"
-        focus_guideline = "Focus on advanced system design, failure-mode resiliency, trade-off evaluation, code maintainability, and end-to-end technical leadership."
+        difficulty = "Advanced"
+        focus_guideline = "Focus on system design, failure resiliency, performance profiling, and production code maintainability."
     elif exp_years >= 3:
         exp_tier = "Mid-Level (3-5 Yrs)"
-        focus_guideline = "Focus on clean code architecture, practical API design, debugging difficult production issues, and autonomous feature delivery."
+        difficulty = "Intermediate"
+        focus_guideline = "Focus on modular component architecture, robust API design, debugging edge cases, and feature autonomy."
     else:
         exp_tier = "Junior (0-2 Yrs)"
-        focus_guideline = "Focus on core computer science foundations, structured problem-solving, clean coding mechanics, debugging grit, and learning velocity."
+        difficulty = "Beginner"
+        focus_guideline = "Focus on fundamental data structures, coding syntax, core algorithms, and practical debugging basics."
 
-    system_prompt = f"""You are an elite Principal Technical Recruiter and Engineering Bar Raiser.
-Your task is to generate a comprehensive, highly personalized technical interview kit for a candidate.
+    difficulty_badge = f"{difficulty} ({candidate_experience} Yrs Exp)"
+
+    system_prompt = f"""You are a Principal Engineering Recruiter and Technical Bar Raiser.
+Your task is to generate concise, highly calibrated technical interview questions.
 
 Target Role: {job_title}
 Candidate Name: {candidate_name}
-Experience Level: {candidate_experience} Years ({exp_tier})
+Experience Level: {candidate_experience} Years
+Calibrated Difficulty: {difficulty_badge}
 
-Seniority Calibration Guideline:
+Seniority Guideline:
 {focus_guideline}
 
-Instructions:
-1. Compare the Candidate's Resume against the Job Description.
-2. Identify both strong overlaps and critical skill gaps or stretch areas.
-3. Formulate 4 to 6 razor-sharp, non-generic interview questions across four key categories:
-   - "JD Technical": Deep-dive into technical requirements specified in the JD.
-   - "Resume Deep-Dive": Scrutinize specific project claims and metrics on the candidate's resume.
-   - "Experience & Architecture": Calibrated precisely to their {candidate_experience} years of experience.
-   - "Behavioral & Leadership": Real-world situations assessing collaboration, trade-offs, and communication.
-4. For EACH question, provide:
-   - "id": unique string (e.g. "groq-q1")
-   - "category": one of ["JD Technical", "Resume Deep-Dive", "Experience & Architecture", "Behavioral & Leadership"]
-   - "difficulty": "{exp_tier}"
-   - "question": clear, nuanced, conversational question text.
-   - "rationale": explanation of why this question is being asked based on the JD or resume.
-   - "whatToLookFor": array of 3 specific bullet points indicating strong answers vs weak answers.
-   - "followUpProbe": a sharp follow-up question to probe deeper.
-5. Provide a "matchedScore" (integer 0-100) and an executive "summary" (2-3 sentences).
+STRICT CONSTRAINTS (MUST FOLLOW):
+1. QUESTION LENGTH: Each question MUST BE STRICTLY 1 OR 2 LINES (maximum 20-30 words). Never output lengthy paragraphs, multi-sentence setups, or compound multi-part prompts.
+2. DIFFICULTY CALIBRATION: The difficulty and question depth must strictly match the candidate's experience tier: {difficulty_badge}.
+3. Generate 4 sharp, high-signal questions across categories:
+   - "JD Technical": 1-2 line question on core technologies from the JD.
+   - "Resume Deep-Dive": 1-2 line question on claims/projects from the candidate's resume.
+   - "Experience & Architecture": 1-2 line question calibrated directly for {candidate_experience} years of experience ({difficulty}).
+   - "Behavioral & Leadership": 1-2 line question on technical trade-offs, collaboration, or ownership.
 
 Return ONLY valid JSON matching this schema:
 {{
   "jobTitle": "{job_title}",
   "candidateName": "{candidate_name}",
   "candidateExperience": {candidate_experience},
-  "matchedScore": 85,
-  "summary": "Executive calibration summary...",
+  "matchedScore": 88,
+  "summary": "Concise 1-sentence qualification summary.",
   "questions": [
     {{
-      "id": "groq-q1",
+      "id": "q1",
       "category": "JD Technical",
-      "difficulty": "{exp_tier}",
-      "question": "Question text...",
-      "rationale": "Why this question...",
-      "whatToLookFor": ["Point 1", "Point 2", "Point 3"],
-      "followUpProbe": "Follow-up question..."
+      "difficulty": "{difficulty_badge}",
+      "question": "Concise question text here (strictly 1 or 2 lines)?",
+      "rationale": "Short 1-sentence reason for this question.",
+      "whatToLookFor": ["Key signal 1", "Key signal 2"],
+      "followUpProbe": "Short 1-line follow-up probe?"
     }}
   ]
 }}

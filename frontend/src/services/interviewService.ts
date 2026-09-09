@@ -77,43 +77,49 @@ export const interviewService = {
   ): Promise<InterviewKit> => {
     const exp = params.candidateExperience;
     let expTier = 'Junior (0-2 Yrs)';
+    let difficulty = 'Beginner';
     let focusGuideline = 'Focus on core programming fundamentals, structured debugging, data structures, and learning capacity.';
     if (exp >= 8) {
       expTier = 'Lead / Architect (8+ Yrs)';
+      difficulty = 'Expert';
       focusGuideline = 'Focus on distributed system architecture, trade-offs, technical governance, scaling bottlenecks, and organizational engineering excellence.';
     } else if (exp >= 5) {
       expTier = 'Senior (5-8 Yrs)';
+      difficulty = 'Advanced';
       focusGuideline = 'Focus on complex system resilience, concurrency, microservices/APIs, code maintainability, and team technical leadership.';
     } else if (exp >= 3) {
       expTier = 'Mid-Level (3-5 Yrs)';
+      difficulty = 'Intermediate';
       focusGuideline = 'Focus on robust feature architecture, clean modular design, integration testing, and independent problem-solving.';
     }
 
+    const difficultyBadge = `${difficulty} (${exp} Yrs Exp)`;
+
     const systemPrompt = `You are a Principal Engineering Recruiter and Technical Bar Raiser.
-Your goal is to generate an in-depth, tailored interview kit specifically evaluating this candidate against the target role.
+Your goal is to generate short, razor-sharp technical interview questions specifically evaluating this candidate against the target role.
 
 Target Position: ${params.jobTitle}
 Candidate Name: ${params.candidateName}
-Experience: ${exp} Years (${expTier})
+Experience: ${exp} Years (${difficultyBadge})
 Experience Calibration Guide: ${focusGuideline}
 
-Instructions:
-1. Thoroughly compare the Candidate's Resume against the Job Description requirements.
-2. Identify both strong overlaps and critical skill gaps or stretch areas.
-3. Formulate 4 to 6 razor-sharp, realistic, conversational interview questions across four categories:
-   - "JD Technical": Direct deep-dive into core technologies and architectures specified in the JD.
-   - "Resume Deep-Dive": Scrutinize specific project claims, accomplishments, or metrics in candidate's resume.
-   - "Experience & Architecture": Calibrated directly for a candidate with ${exp} years of tenure.
-   - "Behavioral & Leadership": Real-world engineering scenarios assessing trade-offs, conflict resolution, and communication.
+STRICT CONSTRAINTS (MUST COMPLY):
+1. QUESTION LENGTH: Each question MUST BE STRICTLY 1 OR 2 LINES (maximum 20-30 words). Never output long paragraphs or multi-part compound setups.
+2. DIFFICULTY: The difficulty must strictly match their ${difficultyBadge} tier.
+3. Formulate 4 sharp interview questions across categories:
+   - "JD Technical": 1-2 lines on core technology requirements.
+   - "Resume Deep-Dive": 1-2 lines on candidate's specific claims/projects.
+   - "Experience & Architecture": 1-2 lines calibrated to their ${exp} years experience (${difficulty}).
+   - "Behavioral & Leadership": 1-2 lines on trade-offs and decision making.
 4. For EACH question, provide:
    - "id": string like "groq-q1"
    - "category": exactly one of ["JD Technical", "Resume Deep-Dive", "Experience & Architecture", "Behavioral & Leadership"]
-   - "difficulty": exactly "${expTier}"
-   - "question": realistic, thought-provoking question text
-   - "rationale": reason for asking this question based on JD/Resume comparison
-   - "whatToLookFor": array of 3 distinct evaluation indicators for great vs mediocre responses
-   - "followUpProbe": sharp follow-up probe to test depth
-5. Provide an estimated match score (0-100) and a 2-3 sentence executive calibration summary.
+   - "difficulty": "${difficultyBadge}"
+   - "question": strictly 1 or 2 line question text
+   - "rationale": 1 short sentence reason
+   - "whatToLookFor": array of 2 short bullet points
+   - "followUpProbe": 1 short follow-up line
+5. Provide match score (0-100) and a concise 1-sentence summary.
 
 Respond ONLY with valid JSON in this exact structure:
 {
@@ -121,16 +127,16 @@ Respond ONLY with valid JSON in this exact structure:
   "candidateName": "${params.candidateName}",
   "candidateExperience": ${exp},
   "matchedScore": 86,
-  "summary": "Summary text...",
+  "summary": "Concise 1-sentence executive summary.",
   "questions": [
     {
       "id": "groq-q1",
       "category": "JD Technical",
-      "difficulty": "${expTier}",
-      "question": "Question text...",
-      "rationale": "Rationale...",
-      "whatToLookFor": ["Point 1", "Point 2", "Point 3"],
-      "followUpProbe": "Follow-up question..."
+      "difficulty": "${difficultyBadge}",
+      "question": "Short 1 or 2 line question text?",
+      "rationale": "Short 1-sentence rationale.",
+      "whatToLookFor": ["Point 1", "Point 2"],
+      "followUpProbe": "Short 1-line follow-up?"
     }
   ]
 }`;
@@ -257,10 +263,20 @@ ${params.candidateResume}`;
     await new Promise((resolve) => setTimeout(resolve, 1200));
 
     const exp = params.candidateExperience;
-    let expTier: 'Junior (0-2 Yrs)' | 'Mid-Level (3-5 Yrs)' | 'Senior (5-8 Yrs)' | 'Lead / Architect (8+ Yrs)' = 'Junior (0-2 Yrs)';
-    if (exp >= 8) expTier = 'Lead / Architect (8+ Yrs)';
-    else if (exp >= 5) expTier = 'Senior (5-8 Yrs)';
-    else if (exp >= 3) expTier = 'Mid-Level (3-5 Yrs)';
+    let expTier = 'Junior (0-2 Yrs)';
+    let difficulty = 'Beginner';
+    if (exp >= 8) {
+      expTier = 'Lead / Architect (8+ Yrs)';
+      difficulty = 'Expert';
+    } else if (exp >= 5) {
+      expTier = 'Senior (5-8 Yrs)';
+      difficulty = 'Advanced';
+    } else if (exp >= 3) {
+      expTier = 'Mid-Level (3-5 Yrs)';
+      difficulty = 'Intermediate';
+    }
+
+    const difficultyBadge = `${difficulty} (${exp} Yrs Exp)`;
 
     const jdText = params.jobDescription.toLowerCase();
     const resumeText = params.candidateResume.toLowerCase();
@@ -284,73 +300,68 @@ ${params.candidateResume}`;
       {
         id: 'q-jd-1',
         category: 'JD Technical',
-        difficulty: expTier,
-        question: `Our job description emphasizes heavy use of ${primaryTech.toUpperCase()}. Can you explain how you designed and optimized ${primaryTech.toUpperCase()} applications in your previous projects to handle high-traffic or complex state?`,
-        rationale: `Directly assesses core requirement from JD (${primaryTech}) matched against candidate's background.`,
+        difficulty: difficultyBadge,
+        question: `How have you structured and optimized ${primaryTech.toUpperCase()} applications in production to handle heavy load?`,
+        rationale: `Assesses hands-on production depth with ${primaryTech.toUpperCase()} specified in the JD.`,
         whatToLookFor: [
-          `Clear understanding of ${primaryTech} lifecycle, performance bottlenecks, and best practices.`,
-          `Real-world examples of profiling or caching rather than theoretical definitions.`,
-          `Awareness of modern ecosystem conventions.`
+          `Concrete optimization tactics rather than generic definitions.`,
+          `Awareness of lifecycle and state bottlenecks.`
         ],
-        followUpProbe: `What was the most challenging bug or performance regression you encountered with ${primaryTech}, and how did you diagnose it?`
+        followUpProbe: `What was the most challenging bug or performance regression you solved in ${primaryTech.toUpperCase()}?`
       },
       {
         id: 'q-jd-2',
         category: 'JD Technical',
-        difficulty: expTier,
-        question: `The role requires familiarity with ${gapTech.toUpperCase()}. How would you bridge your current experience to get up to speed quickly with our ${gapTech.toUpperCase()} pipeline?`,
-        rationale: `Identifies adaptability for skill gaps detected between JD requirements and resume content.`,
+        difficulty: difficultyBadge,
+        question: `How would you quickly adapt your existing skills to build and deploy within our ${gapTech.toUpperCase()} pipeline?`,
+        rationale: `Evaluates technical agility and knowledge transferability for ${gapTech.toUpperCase()}.`,
         whatToLookFor: [
-          `Self-directed learning methodology and quick ramp-up framework.`,
-          `Transferable concepts from related technologies they already know.`,
-          `Honesty about knowledge boundaries paired with high curiosity.`
+          `Structured methodology for learning new technology.`,
+          `Confidence and honesty regarding technical boundaries.`
         ],
-        followUpProbe: `Can you walk through a time you had to deliver production code in a technology you had never used before?`
+        followUpProbe: `Can you share an example where you mastered a new technology quickly under a tight deadline?`
       },
       {
         id: 'q-res-1',
         category: 'Resume Deep-Dive',
-        difficulty: expTier,
-        question: `In your resume, you highlighted significant accomplishments working with ${secondaryTech.toUpperCase()}. Could you break down the architectural decisions you made, the trade-offs evaluated, and why you selected that particular approach?`,
-        rationale: `Validates authenticity of achievements reported on ${params.candidateName}'s resume.`,
+        difficulty: difficultyBadge,
+        question: `What was the most critical architectural decision or trade-off you made when delivering your ${secondaryTech.toUpperCase()} project?`,
+        rationale: `Validates technical depth and ownership of achievements highlighted on ${params.candidateName}'s resume.`,
         whatToLookFor: [
-          `Detailed articulation of technical constraints and business context.`,
-          `Ability to defend trade-offs (e.g. build vs buy, performance vs developer velocity).`,
-          `Clear distinction of their individual contributions versus the wider team's role.`
+          `Clear rationale defending trade-offs (e.g., complexity vs maintainability).`,
+          `Clear articulation of personal contributions.`
         ],
-        followUpProbe: `If you had to re-architect that same project today from scratch, what would you do differently?`
+        followUpProbe: `If you were designing that solution again today, what would you do differently?`
       },
       {
         id: 'q-exp-1',
         category: 'Experience & Architecture',
-        difficulty: expTier,
+        difficulty: difficultyBadge,
         question: exp >= 8
-          ? `With over ${exp} years of industry experience, how do you approach establishing engineering standards, mitigating architectural technical debt across multiple teams, and aligning system design with business ROI?`
+          ? `With ${exp} years of experience, how do you eliminate cross-system architectural debt and align engineering design with business ROI?`
           : exp >= 5
-          ? `As a Senior Engineer with ${exp} years of hands-on experience, how do you design systems to be resilient against partial failures, cascading network outages, and sudden spikes in traffic?`
+          ? `As a Senior Engineer with ${exp} years experience, how do you design systems to survive partial network failures and traffic spikes?`
           : exp >= 3
-          ? `With ${exp} years under your belt, how do you balance writing clean, reusable abstraction layers versus keeping code straightforward and easy to maintain by others?`
-          : `As an engineer with ${exp} year(s) of experience, can you walk me through your systematic process for debugging a complex, intermittent issue when the error logs aren't immediately clear?`,
-        rationale: `Calibrated specifically for a ${expTier} level profile with ${exp} years of tenure.`,
+          ? `With ${exp} years under your belt, how do you balance writing reusable abstractions against keeping code easy to debug?`
+          : `With ${exp} year(s) of experience, walk me through your step-by-step process for debugging an elusive production bug.`,
+        rationale: `Calibrated specifically for ${difficulty} difficulty based on ${exp} years of tenure.`,
         whatToLookFor: [
-          `Depth matching the ${expTier} expectations.`,
-          `Concrete real-world examples and trade-off considerations.`,
-          `Self-awareness and clarity of communication.`
+          `Depth matching ${difficulty} expectations.`,
+          `Clear reasoning and real-world considerations.`
         ],
-        followUpProbe: `Can you describe a specific situation where that approach was challenged by the team?`
+        followUpProbe: `Can you share a situation where that approach was challenged by your team?`
       },
       {
         id: 'q-beh-1',
         category: 'Behavioral & Leadership',
-        difficulty: expTier,
-        question: `Tell me about a time you had a strong technical disagreement with a colleague or product manager regarding how a feature should be built for the ${params.jobTitle} role. How did you resolve it?`,
-        rationale: `Assesses emotional intelligence, constructive communication, and collaborative decision making.`,
+        difficulty: difficultyBadge,
+        question: `Describe a difficult technical disagreement you resolved with a teammate regarding system design or code standards.`,
+        rationale: `Assesses collaborative decision making, empathy, and professional communication.`,
         whatToLookFor: [
-          `Focus on data, user impact, and objective criteria rather than ego.`,
-          `Active listening to opposing viewpoints.`,
-          `Commitment to the final team decision once consensus was reached.`
+          `Focus on objective metrics and user needs over personal ego.`,
+          `Constructive alignment toward team success.`
         ],
-        followUpProbe: `Would you handle that situation any differently in hindsight?`
+        followUpProbe: `How did the final outcome impact the delivery timeline and team morale?`
       }
     ];
 

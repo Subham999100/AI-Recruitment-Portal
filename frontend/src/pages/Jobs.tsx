@@ -262,10 +262,10 @@ Follow-up Probe: ${q.followUpProbe}
     : [];
 
   const getDifficultyBadge = (tier: string) => {
-    if (tier.includes('Junior')) return 'bg-blue-50 text-blue-700 border-blue-200';
-    if (tier.includes('Mid')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-    if (tier.includes('Senior')) return 'bg-purple-50 text-purple-700 border-purple-200';
-    return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (tier.includes('Junior') || tier.includes('Beginner')) return 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30';
+    if (tier.includes('Mid') || tier.includes('Intermediate')) return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
+    if (tier.includes('Senior') || tier.includes('Advanced')) return 'bg-purple-500/15 text-purple-300 border-purple-500/30';
+    return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
   };
 
   const isGroqActive = Boolean(groqKey || backendConfigured);
@@ -729,7 +729,7 @@ Follow-up Probe: ${q.followUpProbe}
                     transition={{ delay: index * 0.05 }}
                     className="bg-[rgba(17,10,27,0.78)] backdrop-blur-xl rounded-2xl border border-white/10 shadow-xl hover:border-purple-500/40 transition-all duration-300 overflow-hidden"
                   >
-                    <div className="p-6 md:p-8 space-y-4">
+                    <div className="p-5 md:p-6 space-y-3">
                       {/* Card Header badges */}
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
@@ -762,37 +762,18 @@ Follow-up Probe: ${q.followUpProbe}
                         </button>
                       </div>
 
-                      {/* Main Question Text */}
-                      <p className="text-lg font-bold text-white leading-snug">
+                      {/* Main Question Text (Strictly 1-2 lines) */}
+                      <p className="text-base font-semibold text-white leading-relaxed">
                         "{q.question}"
                       </p>
 
-                      {/* Context Rationale */}
-                      <div className="text-xs text-gray-300 flex items-start gap-2 bg-white/5 p-3 rounded-xl border border-white/10">
-                        <Zap className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                        <span><strong className="text-white">Context & Rationale:</strong> {q.rationale}</span>
-                      </div>
-
-                      {/* Evaluation Criteria */}
-                      <div className="space-y-2 pt-2">
-                        <p className="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          What to look for in candidate's response
-                        </p>
-                        <ul className="space-y-1.5 pl-5 list-disc text-xs text-gray-300">
-                          {q.whatToLookFor.map((item, i) => (
-                            <li key={i}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Follow-up Probe */}
-                      <div className="mt-4 pt-4 border-t border-purple-500/20 bg-purple-500/10 -mx-6 -mb-6 md:-mx-8 md:-mb-8 p-4 md:px-8 flex items-start gap-2.5 text-xs text-purple-200">
-                        <HelpCircle className="w-4 h-4 text-[#c084fc] flex-shrink-0 mt-0.5" />
-                        <div>
-                          <strong className="font-semibold text-white">Follow-up Probe:</strong> {q.followUpProbe}
+                      {/* Concise Rationale hint */}
+                      {q.rationale && (
+                        <div className="text-xs text-gray-400 flex items-center gap-2 pt-1 border-t border-white/5">
+                          <Zap className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                          <span className="truncate"><strong className="text-gray-300">Rationale:</strong> {q.rationale}</span>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </motion.div>
                 ))}
