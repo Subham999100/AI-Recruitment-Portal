@@ -17,7 +17,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Candidates', href: '/candidates', icon: Users },
     { name: 'New Candidate Match', href: '/upload', icon: Sparkles, isHighlight: true },
-    { name: 'Jobs & AI Interview Prep', href: '/jobs', icon: Briefcase },
+    { name: 'Question Generation', href: '/jobs', icon: Briefcase },
     { name: 'Settings', href: '#', icon: Settings },
   ];
 
