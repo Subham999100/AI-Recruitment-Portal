@@ -1,21 +1,23 @@
 import os
-from typing import Optional
+
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from Backend.database import create_tables
 from Backend.resume import process_resume
 from Backend.job import create_job
 from Backend.matching import get_top_candidates
-from Backend.llm import generate_interview_kit_llm
 
 
 app = FastAPI(
     title="AI Recruitment Portal API"
 )
 
-# Enable CORS for frontend integration
+
+# -------------------------
+# CORS
+# -------------------------
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,9 +25,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Create database tables when the application starts
-create_tables()
 
 
 # -------------------------
@@ -35,16 +34,6 @@ create_tables()
 class JobRequest(BaseModel):
     title: str
     description: str
-
-
-class InterviewKitRequest(BaseModel):
-    job_title: str
-    job_description: str
-    candidate_name: str
-    candidate_resume: str
-    candidate_experience: float
-    api_key: Optional[str] = None
-    model: Optional[str] = "llama-3.3-70b-versatile"
 
 
 # -------------------------
@@ -62,47 +51,22 @@ def home():
 @app.get("/api/groq/status")
 def groq_status():
     api_key_set = bool(os.getenv("GROQ_API_KEY"))
+
     masked_key = ""
+
     if api_key_set:
         raw = os.getenv("GROQ_API_KEY", "")
-        masked_key = raw[:6] + "..." + raw[-4:] if len(raw) > 10 else "***"
+        masked_key = (
+            raw[:6] + "..." + raw[-4:]
+            if len(raw) > 10
+            else "***"
+        )
 
     return {
         "configured": api_key_set,
         "masked_key": masked_key,
-        "default_model": "llama-3.3-70b-versatile"
+        "model": "openai/gpt-oss-20b"
     }
-
-
-# -------------------------
-# AI Interview Kit Generation
-# -------------------------
-
-@app.post("/interview/generate")
-def generate_interview_kit(request: InterviewKitRequest):
-    """
-    Generate customized interview questions using Groq LLM calibrated
-    against candidate resume, job description, and years of experience.
-    """
-    try:
-        result = generate_interview_kit_llm(
-            job_title=request.job_title,
-            job_description=request.job_description,
-            candidate_name=request.candidate_name,
-            candidate_resume=request.candidate_resume,
-            candidate_experience=request.candidate_experience,
-            api_key=request.api_key,
-            model=request.model or "llama-3.3-70b-versatile"
-        )
-        return {
-            "success": True,
-            "data": result
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
 
 
 # -------------------------
@@ -140,10 +104,17 @@ async def upload_resumes(
 
 @app.post("/jobs")
 def create_new_job(job: JobRequest):
-    return create_job(
-        job.title,
-        job.description
-    )
+    try:
+        return create_job(
+            job.title,
+            job.description
+        )
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
 
 
 # -------------------------
@@ -154,12 +125,14 @@ def create_new_job(job: JobRequest):
 def match_candidates(job_id: int):
     try:
         matches = get_top_candidates(job_id)
+
         return {
             "job_id": job_id,
             "matches": matches
         }
 
     except ValueError as error:
-        return {
-            "error": str(error)
-        }
+        raise HTTPException(
+            status_code=404,
+            detail=str(error)
+        )

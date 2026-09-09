@@ -1,4 +1,4 @@
-import json
+from psycopg.types.json import Jsonb
 
 from Backend.database import get_db_connection
 from Backend.embeddings import create_embedding
@@ -6,7 +6,6 @@ from Backend.llm import extract_skills_and_keywords
 
 
 def create_job(title, description):
-
     # Create embedding for the job description
     embedding = create_embedding(description)
 
@@ -17,26 +16,30 @@ def create_job(title, description):
     keywords = analysis["keywords"]
 
     connection = get_db_connection()
+
     cursor = connection.cursor()
 
     cursor.execute(
         """
         INSERT INTO jobs
         (title, description, embedding, skills, keywords)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING id
         """,
         (
             title,
             description,
-            json.dumps(embedding),
-            json.dumps(skills),
-            json.dumps(keywords)
+            embedding,
+            Jsonb(skills),
+            Jsonb(keywords)
         )
     )
 
-    job_id = cursor.lastrowid
+    job_id = cursor.fetchone()[0]
 
     connection.commit()
+
+    cursor.close()
     connection.close()
 
     return {

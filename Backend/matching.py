@@ -1,28 +1,15 @@
-import json
 import re
-
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
 
 from Backend.database import get_db_connection
 
 
 def normalize_text(text):
-    """
-    Convert text to lowercase and normalize spaces.
-    """
     text = text.lower()
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
 
 def contains_term(text, term):
-    """
-    Check whether a skill/keyword actually exists in the resume.
-
-    Word boundaries prevent things like:
-    SQL matching NoSQL accidentally.
-    """
     text = normalize_text(text)
     term = normalize_text(term)
 
@@ -32,12 +19,8 @@ def contains_term(text, term):
 
 
 def calculate_skill_score(resume_text, skills):
-    """
-    Calculate percentage of JD skills found in the resume.
-    """
-
     if not skills:
-        return 0
+        return 0.0
 
     matched_skills = 0
 
@@ -49,12 +32,8 @@ def calculate_skill_score(resume_text, skills):
 
 
 def calculate_keyword_score(resume_text, keywords):
-    """
-    Calculate percentage of JD keywords found in the resume.
-    """
-
     if not keywords:
-        return 0
+        return 0.0
 
     matched_keywords = 0
 
@@ -65,30 +44,15 @@ def calculate_keyword_score(resume_text, keywords):
     return (matched_keywords / len(keywords)) * 100
 
 
-def calculate_semantic_score(job_embedding, candidate_embedding):
-    """
-    Calculate semantic similarity between JD and resume.
-
-    Convert cosine similarity from [-1, 1] to [0, 100].
-    """
-
-    similarity = cosine_similarity(
-        job_embedding,
-        candidate_embedding
-    )[0][0]
-
-    score = ((similarity + 1) / 2) * 100
-
-    return score
-
-
 def get_top_candidates(job_id, top_n=5):
-
     connection = get_db_connection()
 
-    # Get job
     job = connection.execute(
-        "SELECT * FROM jobs WHERE id = ?",
+        """
+        SELECT id, title, description, embedding, skills, keywords
+        FROM jobs
+        WHERE id = %s
+        """,
         (job_id,)
     ).fetchone()
 
@@ -96,18 +60,26 @@ def get_top_candidates(job_id, top_n=5):
         connection.close()
         raise ValueError("Job not found")
 
-    # Job embedding
-    job_embedding = np.array(
-        json.loads(job["embedding"])
-    ).reshape(1, -1)
+    job_embedding = job["embedding"]
 
-    # Skills and keywords stored as JSON
-    skills = json.loads(job["skills"]) if job["skills"] else []
-    keywords = json.loads(job["keywords"]) if job["keywords"] else []
+    skills = job["skills"] or []
+    keywords = job["keywords"] or []
 
-    # Get candidates
+    # First retrieve the most semantically similar candidates
     candidates = connection.execute(
-        "SELECT * FROM candidates"
+        """
+        SELECT
+            id,
+            name,
+            resume_filename,
+            resume_text,
+            1 - (embedding <=> %s) AS semantic_similarity
+        FROM candidates
+        WHERE embedding IS NOT NULL
+        ORDER BY embedding <=> %s
+        LIMIT 20
+        """,
+        (job_embedding, job_embedding)
     ).fetchall()
 
     connection.close()
@@ -115,49 +87,29 @@ def get_top_candidates(job_id, top_n=5):
     matches = []
 
     for candidate in candidates:
+        semantic_similarity = float(candidate["semantic_similarity"])
 
-        if not candidate["embedding"]:
-            continue
-
-        candidate_embedding = np.array(
-            json.loads(candidate["embedding"])
-        ).reshape(1, -1)
-
-        # -------------------------
-        # 1. Semantic score - 60%
-        # -------------------------
-
-        semantic_score = calculate_semantic_score(
-            job_embedding,
-            candidate_embedding
+        # Convert cosine similarity to a 0-100 score.
+        semantic_score = max(
+            0,
+            min(100, semantic_similarity * 100)
         )
-
-        # -------------------------
-        # 2. Skill score - 30%
-        # -------------------------
 
         skill_score = calculate_skill_score(
             candidate["resume_text"],
             skills
         )
 
-        # -------------------------
-        # 3. Keyword score - 10%
-        # -------------------------
-
         keyword_score = calculate_keyword_score(
             candidate["resume_text"],
             keywords
         )
 
-        # -------------------------
-        # Final score
-        # -------------------------
-
+        # Hybrid ranking
         final_score = (
-            semantic_score * 0.60
-            + skill_score * 0.30
-            + keyword_score * 0.10
+            semantic_score * 0.50
+            + skill_score * 0.35
+            + keyword_score * 0.15
         )
 
         matches.append({
@@ -170,7 +122,6 @@ def get_top_candidates(job_id, top_n=5):
             "keyword_score": round(keyword_score, 2)
         })
 
-    # Highest score first
     matches.sort(
         key=lambda candidate: candidate["match_score"],
         reverse=True

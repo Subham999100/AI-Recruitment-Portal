@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: ai-recruitment-postgres
+
+    environment:
+      POSTGRES_USER: recruitment_user
+      POSTGRES_PASSWORD: recruitment_password
+      POSTGRES_DB: recruitment_db
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - recruitment_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  recruitment_postgres_data:
