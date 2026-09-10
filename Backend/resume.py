@@ -24,7 +24,7 @@ def extract_candidate_info(text):
     return name, email
 
 
-def process_resume(file):
+def process_resume(file, user_id):
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
     filename = os.path.basename(file.filename)
@@ -47,17 +47,17 @@ def process_resume(file):
     embedding = create_embedding(resume_text)
 
     connection = get_db_connection()
-
     cursor = connection.cursor()
 
     cursor.execute(
         """
         INSERT INTO candidates
-        (name, email, resume_filename, resume_text, embedding)
-        VALUES (%s, %s, %s, %s, %s)
+        (user_id, name, email, resume_filename, resume_text, embedding)
+        VALUES (%s, %s, %s, %s, %s, %s)
         RETURNING id
         """,
         (
+            user_id,
             name,
             email,
             filename,
@@ -66,7 +66,7 @@ def process_resume(file):
         )
     )
 
-    candidate_id = cursor.fetchone()[0]
+    candidate_id = cursor.fetchone()["id"]
 
     connection.commit()
 

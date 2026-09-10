@@ -1,17 +1,39 @@
 import os
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import (
+    FastAPI,
+    File,
+    UploadFile,
+    HTTPException,
+    Depends,
+)
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from Backend.resume import process_resume
 from Backend.job import create_job
 from Backend.matching import get_top_candidates
-
+from Backend.auth import (
+    create_users_table,
+    register_user,
+    login_user,
+    get_current_user,
+)
+from Backend.interview import generate_interview_questions
 
 app = FastAPI(
     title="AI Recruitment Portal API"
 )
+
+
+# -------------------------
+# Startup
+# -------------------------
+
+@app.on_event("startup")
+def startup():
+    create_users_table()
 
 
 # -------------------------
@@ -28,12 +50,42 @@ app.add_middleware(
 
 
 # -------------------------
+# Authentication
+# -------------------------
+
+security = HTTPBearer()
+
+
+def get_logged_in_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    try:
+        return get_current_user(credentials.credentials)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=401,
+            detail=str(error)
+        )
+
+
+# -------------------------
 # Request Models
 # -------------------------
 
 class JobRequest(BaseModel):
     title: str
     description: str
+
+
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
 
 
 # -------------------------
@@ -56,6 +108,7 @@ def groq_status():
 
     if api_key_set:
         raw = os.getenv("GROQ_API_KEY", "")
+
         masked_key = (
             raw[:6] + "..." + raw[-4:]
             if len(raw) > 10
@@ -70,19 +123,69 @@ def groq_status():
 
 
 # -------------------------
+# Authentication Endpoints
+# -------------------------
+
+@app.post("/auth/register")
+def register(request: RegisterRequest):
+    try:
+        user = register_user(
+            request.name,
+            request.email,
+            request.password
+        )
+
+        return {
+            "message": "User registered successfully",
+            **user
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
+
+@app.post("/auth/login")
+def login(request: LoginRequest):
+    try:
+        user = login_user(
+            request.email,
+            request.password
+        )
+
+        return {
+            "message": "Login successful",
+            **user
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=401,
+            detail=str(error)
+        )
+
+
+# -------------------------
 # Upload Resumes
 # -------------------------
 
 @app.post("/resumes/upload")
 async def upload_resumes(
-    files: list[UploadFile] = File(...)
+    files: list[UploadFile] = File(...),
+    current_user=Depends(get_logged_in_user)
 ):
     successful = []
     failed = []
 
     for file in files:
         try:
-            result = process_resume(file)
+            result = process_resume(
+                file,
+                current_user["id"]
+            )
+
             successful.append(result)
 
         except Exception as error:
@@ -103,11 +206,15 @@ async def upload_resumes(
 # -------------------------
 
 @app.post("/jobs")
-def create_new_job(job: JobRequest):
+def create_new_job(
+    job: JobRequest,
+    current_user=Depends(get_logged_in_user)
+):
     try:
         return create_job(
             job.title,
-            job.description
+            job.description,
+            current_user["id"]
         )
 
     except Exception as error:
@@ -122,9 +229,15 @@ def create_new_job(job: JobRequest):
 # -------------------------
 
 @app.get("/matching/{job_id}")
-def match_candidates(job_id: int):
+def match_candidates(
+    job_id: int,
+    current_user=Depends(get_logged_in_user)
+):
     try:
-        matches = get_top_candidates(job_id)
+        matches = get_top_candidates(
+            job_id,
+            current_user["id"]
+        )
 
         return {
             "job_id": job_id,
@@ -136,3 +249,19 @@ def match_candidates(job_id: int):
             status_code=404,
             detail=str(error)
         )
+@app.post("/interview/{job_id}/{candidate_id}")
+def generate_candidate_interview(
+    job_id: int,
+    candidate_id: int,
+    current_user=Depends(get_logged_in_user)
+):
+    try:
+        return generate_interview_questions(
+            job_id,
+            candidate_id,
+            current_user["id"]
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))

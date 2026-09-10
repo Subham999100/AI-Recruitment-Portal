@@ -1,19 +1,27 @@
 import os
-
 from dotenv import load_dotenv
-from openai import OpenAI
+from google import genai
+from google.genai import types
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+MODEL = "gemini-embedding-001"
+DIMENSIONS = 768
 
-EMBEDDING_MODEL = "text-embedding-3-small"
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
-def create_embedding(text):
-    response = client.embeddings.create(
-        model=EMBEDDING_MODEL,
-        input=text
+def create_embedding(text: str):
+    if not text:
+        raise ValueError("Text cannot be empty")
+
+    response = client.models.embed_content(
+        model=MODEL,
+        contents=text,
+        config=types.EmbedContentConfig(
+            output_dimensionality=DIMENSIONS,
+            task_type="SEMANTIC_SIMILARITY",
+        ),
     )
 
-    return response.data[0].embedding
+    return response.embeddings[0].values

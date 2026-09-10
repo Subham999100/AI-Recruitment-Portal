@@ -5,7 +5,6 @@ import psycopg
 from psycopg.rows import dict_row
 from pgvector.psycopg import register_vector
 
-
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -19,6 +18,9 @@ def get_db_connection():
         DATABASE_URL,
         row_factory=dict_row
     )
+
+    connection.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    connection.commit()
 
     register_vector(connection)
 

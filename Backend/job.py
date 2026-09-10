@@ -5,28 +5,26 @@ from Backend.embeddings import create_embedding
 from Backend.llm import extract_skills_and_keywords
 
 
-def create_job(title, description):
-    # Create embedding for the job description
+def create_job(title, description, user_id):
     embedding = create_embedding(description)
 
-    # Extract skills and keywords using Groq
     analysis = extract_skills_and_keywords(description)
 
     skills = analysis["skills"]
     keywords = analysis["keywords"]
 
     connection = get_db_connection()
-
     cursor = connection.cursor()
 
     cursor.execute(
         """
         INSERT INTO jobs
-        (title, description, embedding, skills, keywords)
-        VALUES (%s, %s, %s, %s, %s)
+        (user_id, title, description, embedding, skills, keywords)
+        VALUES (%s, %s, %s, %s, %s, %s)
         RETURNING id
         """,
         (
+            user_id,
             title,
             description,
             embedding,
@@ -35,7 +33,7 @@ def create_job(title, description):
         )
     )
 
-    job_id = cursor.fetchone()[0]
+    job_id = cursor.fetchone()["id"]
 
     connection.commit()
 
