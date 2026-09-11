@@ -69,7 +69,10 @@ def calculate_semantic_score(job_embedding, candidate_embedding):
     """
     Calculate semantic similarity between JD and resume.
 
-    Convert cosine similarity from [-1, 1] to [0, 100].
+    Embeddings are normalized, so cosine similarity is already the
+    similarity signal. Do not shift it by 50 points: unrelated text
+    should not receive a passing score merely because cosine similarity
+    is close to zero.
     """
 
     similarity = cosine_similarity(
@@ -77,20 +80,38 @@ def calculate_semantic_score(job_embedding, candidate_embedding):
         candidate_embedding
     )[0][0]
 
-    score = ((similarity + 1) / 2) * 100
+    score = max(float(similarity), 0.0) * 100
 
-    return score
+    return min(score, 100.0)
 
 
-def get_top_candidates(job_id, top_n=None):
+def calculate_final_score(semantic_score, skill_score, keyword_score, has_required_skills):
+    """Combine evidence and prevent semantic similarity from hiding skill gaps."""
+
+    score = (
+        semantic_score * 0.40
+        + skill_score * 0.45
+        + keyword_score * 0.15
+    )
+
+    if has_required_skills:
+        if skill_score == 0:
+            return min(score, 20.0)
+        if skill_score < 25:
+            return min(score, 35.0)
+
+    return min(max(score, 0.0), 100.0)
+
+
+def get_top_candidates(job_id, owner_id=None, include_all=False, top_n=None):
 
     connection = get_db_connection()
 
     # Get job
-    job = connection.execute(
-        "SELECT * FROM jobs WHERE id = ?",
-        (job_id,)
-    ).fetchone()
+    if include_all:
+        job = connection.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
+    else:
+        job = connection.execute("SELECT * FROM jobs WHERE id = ? AND owner_id = ?", (job_id, owner_id)).fetchone()
 
     if job is None:
         connection.close()
@@ -107,7 +128,8 @@ def get_top_candidates(job_id, top_n=None):
 
     # Get candidates
     candidates = connection.execute(
-        "SELECT * FROM candidates"
+        "SELECT * FROM candidates" if include_all else "SELECT * FROM candidates WHERE owner_id = ?",
+        () if include_all else (owner_id,),
     ).fetchall()
 
     matches = []
@@ -122,7 +144,7 @@ def get_top_candidates(job_id, top_n=None):
         ).reshape(1, -1)
 
         # -------------------------
-        # 1. Semantic score - 60%
+        # 1. Semantic score - 40%
         # -------------------------
 
         semantic_score = calculate_semantic_score(
@@ -131,7 +153,7 @@ def get_top_candidates(job_id, top_n=None):
         )
 
         # -------------------------
-        # 2. Skill score - 30%
+        # 2. Skill score - 45%
         # -------------------------
 
         skill_score = calculate_skill_score(
@@ -140,7 +162,7 @@ def get_top_candidates(job_id, top_n=None):
         )
 
         # -------------------------
-        # 3. Keyword score - 10%
+        # 3. Keyword score - 15%
         # -------------------------
 
         keyword_score = calculate_keyword_score(
@@ -152,10 +174,11 @@ def get_top_candidates(job_id, top_n=None):
         # Final score
         # -------------------------
 
-        final_score = (
-            semantic_score * 0.60
-            + skill_score * 0.30
-            + keyword_score * 0.10
+        final_score = calculate_final_score(
+            semantic_score,
+            skill_score,
+            keyword_score,
+            bool(skills),
         )
 
         matches.append({

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, MapPin, Download, BrainCircuit, Briefcase, GraduationCap } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Download, BrainCircuit, Briefcase, GraduationCap, Sparkles, RefreshCw, ChevronDown } from 'lucide-react';
 import { candidateService } from '../services/candidateService';
-import { Candidate, MatchResult } from '../types';
+import { interviewService } from '../services/interviewService';
+import { Candidate, InterviewKit, MatchResult } from '../types';
 import { Button } from '../components/common/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/common/Card';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -19,6 +20,9 @@ export default function CandidateProfile() {
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const [questionsError, setQuestionsError] = useState('');
+  const [interviewKit, setInterviewKit] = useState<InterviewKit | null>(null);
 
   useEffect(() => {
     const fetchCandidateDetails = async () => {
@@ -55,6 +59,19 @@ export default function CandidateProfile() {
     }
   };
 
+  const generateQuestions = async () => {
+    setIsGeneratingQuestions(true);
+    setQuestionsError('');
+    try {
+      const kit = await interviewService.generateCandidateInterviewKit(candidate.id);
+      setInterviewKit(kit);
+    } catch (err) {
+      setQuestionsError(err instanceof Error ? err.message : 'Unable to generate interview questions.');
+    } finally {
+      setIsGeneratingQuestions(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header Actions */}
@@ -66,6 +83,9 @@ export default function CandidateProfile() {
           <ArrowLeft className="w-4 h-4 mr-1.5" /> Back to Candidates
         </button>
         <div className="flex items-center gap-3">
+          <Button onClick={generateQuestions} isLoading={isGeneratingQuestions} leftIcon={<Sparkles className="w-4 h-4" />}>
+            Generate Questions
+          </Button>
           <Button variant="outline" onClick={() => updateStatus('Rejected')}>Reject</Button>
           <Button onClick={() => updateStatus('Shortlisted')}>Shortlist Candidate</Button>
         </div>
@@ -114,6 +134,43 @@ export default function CandidateProfile() {
                   <Badge key={skill} variant="primary" className="px-3 py-1 text-xs">{skill}</Badge>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Sparkles className="w-5 h-5 text-[#c084fc]" /> Interview Questions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!interviewKit && !isGeneratingQuestions && (
+                <p className="text-sm text-gray-400">Generate the top 20 questions and answers for this candidate's matched role.</p>
+              )}
+              {questionsError && <p className="text-sm text-red-300">{questionsError}</p>}
+              {!interviewKit && (
+                <Button onClick={generateQuestions} isLoading={isGeneratingQuestions} leftIcon={<Sparkles className="w-4 h-4" />}>
+                  Generate Questions
+                </Button>
+              )}
+              {interviewKit && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-300">Top 20 questions for <span className="font-semibold text-white">{interviewKit.jobTitle}</span></p>
+                  {interviewKit.questions.slice(0, 20).map((question, index) => (
+                    <details key={question.id} className="group rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-sm font-semibold text-white">
+                        <span>{index + 1}. {question.question}</span>
+                        <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="mt-4 space-y-3 border-t border-white/10 pt-3 text-sm">
+                        <div><p className="font-semibold text-[#c084fc]">Answer</p><p className="mt-1 text-gray-300 leading-relaxed">{question.answer}</p></div>
+                        <div><p className="font-semibold text-gray-400">Why it matters</p><p className="mt-1 text-gray-400 leading-relaxed">{question.rationale}</p></div>
+                      </div>
+                    </details>
+                  ))}
+                  <Button variant="outline" onClick={generateQuestions} isLoading={isGeneratingQuestions} leftIcon={<RefreshCw className="w-4 h-4" />}>
+                    Regenerate Questions
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -166,8 +223,9 @@ export default function CandidateProfile() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-full border-4 border-purple-500/20 mb-2 relative">
+                <div className="text-center mb-6 rounded-2xl border border-purple-400/20 bg-purple-500/10 px-4 py-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-purple-200">Overall Match Score</p>
+                  <div className="inline-flex items-center justify-center w-32 h-32 rounded-full border-4 border-purple-500/20 my-3 relative">
                     <svg className="w-full h-full absolute top-0 left-0 -rotate-90 transform" viewBox="0 0 36 36">
                       <path
                         className="text-white/10"
@@ -185,15 +243,24 @@ export default function CandidateProfile() {
                         strokeWidth="3"
                       />
                     </svg>
-                    <span className="text-3xl font-extrabold text-white">{matchResult.overallScore}%</span>
+                    <span className="text-4xl font-extrabold text-white">{Math.round(matchResult.overallScore)}<span className="text-xl text-purple-200">%</span></span>
                   </div>
-                  <p className="text-sm text-gray-400 font-medium">Overall Match</p>
+                  <p className="text-xs text-gray-400">Candidate fit for the matched job</p>
                 </div>
 
                 <div className="space-y-4">
-                  <ProgressBar showValue value={matchResult.skillMatch} className="text-xs" />
-                  <ProgressBar showValue value={matchResult.semanticMatch} className="text-xs" colorClass="bg-gradient-to-r from-purple-500 to-indigo-500" />
-                  <ProgressBar showValue value={matchResult.keywordMatch} className="text-xs" colorClass="bg-gradient-to-r from-fuchsia-500 to-pink-500" />
+                  <div>
+                    <div className="mb-1 flex justify-between text-sm"><span className="text-gray-400">Skills match</span><span className="font-bold text-white">{Math.round(matchResult.skillMatch)}%</span></div>
+                    <ProgressBar value={matchResult.skillMatch} />
+                  </div>
+                  <div>
+                    <div className="mb-1 flex justify-between text-sm"><span className="text-gray-400">Semantic match</span><span className="font-bold text-white">{Math.round(matchResult.semanticMatch)}%</span></div>
+                    <ProgressBar value={matchResult.semanticMatch} colorClass="bg-gradient-to-r from-purple-500 to-indigo-500" />
+                  </div>
+                  <div>
+                    <div className="mb-1 flex justify-between text-sm"><span className="text-gray-400">Keyword match</span><span className="font-bold text-white">{Math.round(matchResult.keywordMatch)}%</span></div>
+                    <ProgressBar value={matchResult.keywordMatch} colorClass="bg-gradient-to-r from-fuchsia-500 to-pink-500" />
+                  </div>
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-white/10">
@@ -243,6 +310,7 @@ export default function CandidateProfile() {
               )}
             </CardContent>
           </Card>
+
         </div>
       </div>
     </div>

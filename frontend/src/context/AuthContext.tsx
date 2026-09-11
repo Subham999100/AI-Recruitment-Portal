@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
+import { toPortalUser } from '../services/userMapper';
+import { api } from '../services/api';
+import { authService, PortalAuthUser } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string, user: User) => void;
-  logout: () => void;
+  login: (profile: PortalAuthUser) => void;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -18,35 +21,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize auth state from localStorage
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    let mounted = true;
 
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error('Failed to parse stored user', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    const applySession = async () => {
+      if (!mounted) return;
+      if (!localStorage.getItem('portal_access_token')) {
+        setToken(null);
+        setUser(null);
+        setIsLoading(false);
+        return;
       }
-    }
-    setIsLoading(false);
+      try {
+        const response = await api.get<{ data: PortalAuthUser }>('/auth/me');
+        if (!mounted) return;
+        const profile = response.data.data;
+        setToken(localStorage.getItem('portal_access_token'));
+        setUser(toPortalUser({
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          role: profile.role,
+          status: profile.status,
+        }));
+      } catch {
+        if (!mounted) return;
+        setToken(null);
+        setUser(null);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    applySession();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const login = (newToken: string, newUser: User) => {
-    setToken(newToken);
-    setUser(newUser);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+  const login = (profile: PortalAuthUser) => {
+    setToken(localStorage.getItem('portal_access_token'));
+    setUser(toPortalUser({
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      role: profile.role,
+      status: profile.status,
+    }));
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await authService.logout();
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
   };
 
   return (

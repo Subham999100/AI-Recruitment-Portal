@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, Eye, CheckCircle, XCircle, Users } from 'lucide-react';
+import { Search, Filter, Eye, CheckCircle, XCircle, Users, Trash2 } from 'lucide-react';
 import { candidateService } from '../services/candidateService';
 import { Candidate } from '../types';
 import { Button } from '../components/common/Button';
@@ -15,6 +15,7 @@ export default function Candidates() {
   const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deletingCandidateId, setDeletingCandidateId] = useState<number | null>(null);
   
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -74,6 +75,23 @@ export default function Candidates() {
       setCandidates(candidates.map(c => c.id === id ? { ...c, status: newStatus as any } : c));
     } catch (err) {
       alert('Failed to update status');
+    }
+  };
+
+  const handleDeleteCandidate = async (candidate: Candidate) => {
+    const confirmed = window.confirm(
+      `Delete ${candidate.name}? This will remove the candidate, resume, and match history.`
+    );
+    if (!confirmed) return;
+
+    setDeletingCandidateId(candidate.id);
+    try {
+      await candidateService.deleteCandidate(candidate.id);
+      setCandidates((currentCandidates) => currentCandidates.filter((item) => item.id !== candidate.id));
+    } catch {
+      alert('Failed to delete candidate.');
+    } finally {
+      setDeletingCandidateId(null);
     }
   };
 
@@ -206,6 +224,16 @@ export default function Candidates() {
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => handleStatusChange(candidate.id, 'Rejected')} title="Reject">
                         <XCircle className="w-4 h-4 text-gray-400 hover:text-red-400" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteCandidate(candidate)}
+                        title="Delete candidate"
+                        aria-label={`Delete ${candidate.name}`}
+                        isLoading={deletingCandidateId === candidate.id}
+                      >
+                        <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-400" />
                       </Button>
                     </div>
                   </TableCell>

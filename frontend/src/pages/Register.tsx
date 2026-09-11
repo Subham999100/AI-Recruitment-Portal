@@ -21,12 +21,13 @@ export default function Register() {
     setErrorMsg('');
     try {
       await authService.register(data);
-      setSuccessMsg('Registration successful! Redirecting to login...');
+      setSuccessMsg('Registration submitted successfully. Your account is waiting for administrator approval.');
       setTimeout(() => {
         navigate('/login');
-      }, 2000);
+      }, 3500);
     } catch (err) {
-      setErrorMsg('Registration failed. Please try again.');
+      const message = (err as any)?.response?.data?.detail;
+      setErrorMsg(message || (err instanceof Error ? err.message : 'Registration failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +94,8 @@ export default function Register() {
                   error={errors.password?.message as string}
                   {...register('password', { 
                     required: 'Password is required',
-                    minLength: { value: 6, message: 'Password must be at least 6 characters' }
+                    minLength: { value: 8, message: 'Password must be at least 8 characters' },
+                    pattern: { value: /^(?=.*[A-Za-z])(?=.*\d).+$/, message: 'Password must contain a letter and a number' }
                   })}
                 />
 

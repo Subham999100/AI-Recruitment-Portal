@@ -55,6 +55,10 @@ export const candidateService = {
     return { data: toCandidate(response.data.data) };
   },
 
+  deleteCandidate: async (id: number): Promise<void> => {
+    await api.delete(`/candidates/${id}`);
+  },
+
   updateCandidateStatus: async (id: number, status: string): Promise<{ data: Candidate }> => {
     const response = await api.patch<{ data: ApiCandidate }>(`/candidates/${id}/status`, { status });
     return { data: toCandidate(response.data.data) };
@@ -78,6 +82,10 @@ export const candidateService = {
   getJobs: async (): Promise<{ data: Job[] }> => {
     const response = await api.get<{ data: any[] }>('/jobs');
     return { data: response.data.data.map(toJob) };
+  },
+
+  deleteJob: async (id: number): Promise<void> => {
+    await api.delete(`/jobs/${id}`);
   },
 
   createJob: async (title: string, description: string): Promise<{ id: number }> => {

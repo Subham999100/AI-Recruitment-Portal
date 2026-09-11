@@ -1,83 +1,145 @@
-import sqlite3
+import os
+import re
 
-DATABASE_NAME = "recruitment.db"
+import psycopg
+from psycopg.rows import dict_row
+
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+
+class DatabaseConnection:
+    def __init__(self, connection):
+        self._connection = connection
+
+    @staticmethod
+    def _convert_placeholders(query):
+        return re.sub(r"\?", "%s", query)
+
+    def execute(self, query, params=None):
+        return self._connection.execute(self._convert_placeholders(query), params or ())
+
+    def cursor(self):
+        return DatabaseCursor(self._connection.cursor(), self._convert_placeholders)
+
+    def commit(self):
+        self._connection.commit()
+
+    def rollback(self):
+        self._connection.rollback()
+
+    def close(self):
+        self._connection.close()
+
+
+class DatabaseCursor:
+    def __init__(self, cursor, convert_placeholders):
+        self._cursor = cursor
+        self._convert_placeholders = convert_placeholders
+
+    def execute(self, query, params=None):
+        return self._cursor.execute(self._convert_placeholders(query), params or ())
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
 
 
 def get_db_connection():
-    connection = sqlite3.connect(DATABASE_NAME)
-    connection.row_factory = sqlite3.Row
-    return connection
-
-
-def _add_column_if_missing(cursor, table, column_definition):
-    """Apply additive migrations safely for existing local SQLite databases."""
-    column_name = column_definition.split()[0]
-    columns = {
-        row["name"]
-        for row in cursor.execute(f"PRAGMA table_info({table})").fetchall()
-    }
-    if column_name not in columns:
-        cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column_definition}")
+    if not DATABASE_URL:
+        raise RuntimeError("DATABASE_URL is required for the Aiven PostgreSQL database")
+    return DatabaseConnection(psycopg.connect(DATABASE_URL, row_factory=dict_row))
 
 
 def create_tables():
     connection = get_db_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("""
+    statements = [
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id BIGSERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'EMPLOYEE' CHECK (role IN ('ADMIN', 'EMPLOYEE')),
+            status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            approved_at TIMESTAMPTZ,
+            approved_by BIGINT REFERENCES users(id)
+        )
+        """,
+        """
         CREATE TABLE IF NOT EXISTS candidates (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id BIGSERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             email TEXT,
             resume_filename TEXT NOT NULL,
             resume_text TEXT NOT NULL,
-            embedding TEXT
+            embedding TEXT,
+            status TEXT NOT NULL DEFAULT 'New',
+            skills TEXT NOT NULL DEFAULT '[]',
+            experience DOUBLE PRECISION NOT NULL DEFAULT 0,
+            summary TEXT,
+            uploaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-
-    # Keep existing databases usable while adding the fields the portal needs.
-    _add_column_if_missing(cursor, "candidates", "status TEXT NOT NULL DEFAULT 'New'")
-    _add_column_if_missing(cursor, "candidates", "skills TEXT NOT NULL DEFAULT '[]'")
-    _add_column_if_missing(cursor, "candidates", "experience REAL NOT NULL DEFAULT 0")
-    _add_column_if_missing(cursor, "candidates", "summary TEXT")
-    _add_column_if_missing(cursor, "candidates", "uploaded_at TEXT")
-
-    cursor.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS jobs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id BIGSERIAL PRIMARY KEY,
             title TEXT NOT NULL,
             description TEXT NOT NULL,
             embedding TEXT,
             skills TEXT,
             keywords TEXT
         )
-    """)
-
-    cursor.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS candidate_matches (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            job_id INTEGER NOT NULL,
-            candidate_id INTEGER NOT NULL,
-            match_score REAL NOT NULL,
-            semantic_score REAL NOT NULL,
-            skill_score REAL NOT NULL,
-            keyword_score REAL NOT NULL,
-            matched_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(job_id, candidate_id),
-            FOREIGN KEY (job_id) REFERENCES jobs(id),
-            FOREIGN KEY (candidate_id) REFERENCES candidates(id)
+            id BIGSERIAL PRIMARY KEY,
+            job_id BIGINT NOT NULL REFERENCES jobs(id),
+            candidate_id BIGINT NOT NULL REFERENCES candidates(id),
+            match_score DOUBLE PRECISION NOT NULL,
+            semantic_score DOUBLE PRECISION NOT NULL,
+            skill_score DOUBLE PRECISION NOT NULL,
+            keyword_score DOUBLE PRECISION NOT NULL,
+            matched_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(job_id, candidate_id)
         )
-    """)
-
-    cursor.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS interview_questions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            job_id INTEGER NOT NULL,
+            id BIGSERIAL PRIMARY KEY,
+            job_id BIGINT NOT NULL REFERENCES jobs(id),
             question TEXT NOT NULL,
-            answer TEXT NOT NULL,
-            FOREIGN KEY (job_id) REFERENCES jobs(id)
+            answer TEXT NOT NULL
         )
-    """)
-
-    connection.commit()
-    connection.close()
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id BIGSERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'EMPLOYEE' CHECK (role IN ('ADMIN', 'EMPLOYEE')),
+            status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            approved_at TIMESTAMPTZ,
+            approved_by BIGINT REFERENCES users(id)
+        )
+        """,
+    ]
+    try:
+        for statement in statements:
+            connection.execute(statement)
+        connection.execute("ALTER TABLE candidates ADD COLUMN IF NOT EXISTS owner_id BIGINT REFERENCES users(id)")
+        connection.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS owner_id BIGINT REFERENCES users(id)")
+        connection.execute("CREATE INDEX IF NOT EXISTS candidates_owner_idx ON candidates(owner_id)")
+        connection.execute("CREATE INDEX IF NOT EXISTS jobs_owner_idx ON jobs(owner_id)")
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

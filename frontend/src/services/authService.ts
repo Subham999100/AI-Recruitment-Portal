@@ -1,31 +1,26 @@
-import { User } from '../types';
+import { api } from './api';
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export type PortalAuthUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'EMPLOYEE';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+};
 
 export const authService = {
-  login: async (credentials: any) => {
-    // In a real app: return api.post('/auth/login', credentials);
-    await delay(1000); // Simulate network
-    
-    if (credentials.email === 'admin@example.com' || credentials.password) {
-      return {
-        data: {
-          token: 'mock-jwt-token-12345',
-          user: {
-            id: 1,
-            name: 'Jane Recruiter',
-            email: credentials.email,
-            role: 'recruiter'
-          } as User
-        }
-      };
-    }
-    throw new Error('Invalid credentials');
+  login: async (credentials: { email: string; password: string }) => {
+    const response = await api.post<{ access_token: string; user: PortalAuthUser }>('/auth/login', credentials);
+    localStorage.setItem('portal_access_token', response.data.access_token);
+    return response.data;
   },
-  
-  register: async (userData: any) => {
-    // return api.post('/auth/register', userData);
-    await delay(1000);
-    return { data: { success: true } };
-  }
+
+  register: async (userData: { name: string; email: string; password: string }) => {
+    const response = await api.post('/auth/register', userData);
+    return response.data;
+  },
+
+  logout: async () => {
+    localStorage.removeItem('portal_access_token');
+  },
 };

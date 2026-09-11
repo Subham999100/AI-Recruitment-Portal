@@ -207,8 +207,8 @@ def generate_interview_kit_llm(
     model: str = DEFAULT_MODEL
 ) -> Dict[str, Any]:
     """
-    Generate an in-depth, calibrated interview kit using
-    a Groq model.
+    Generate exactly 20 calibrated interview questions and answers
+    using a Groq model.
 
     Questions are calibrated using:
     - Candidate resume
@@ -288,11 +288,8 @@ Instructions:
 
 1. Compare the Candidate's Resume against the Job Description.
 
-2. Identify both strong overlaps and critical skill gaps or
-stretch areas.
-
-3. Formulate 4 to 6 razor-sharp, non-generic interview questions
-across four key categories:
+2. Formulate exactly 20 relevant interview questions and concise
+model answers across these categories:
 
 - "JD Technical"
   Deep-dive into technical requirements specified in the JD.
@@ -309,7 +306,7 @@ across four key categories:
   Real-world situations assessing collaboration,
   trade-offs, and communication.
 
-4. For EACH question, provide:
+3. For EACH question, provide only these fields:
 
 - "id": unique string such as "q1"
 
@@ -321,18 +318,15 @@ across four key categories:
 
 - "difficulty": "{exp_tier}"
 
-- "question": clear, nuanced, conversational question text.
+- "question": clear, specific, conversational question text.
 
-- "rationale": explanation of why this question is being asked
-  based on the JD or resume.
+- "answer": a concise, technically correct model answer based on
+    the resume, skills, experience, and job description.
 
-- "whatToLookFor": array containing exactly 3 specific points.
+4. Provide a "matchedScore" integer from 0 to 100.
 
-- "followUpProbe": a sharp follow-up question.
-
-5. Provide a "matchedScore" integer from 0 to 100.
-
-6. Provide an executive "summary" of 2-3 sentences.
+5. Keep every answer under 120 words so the complete JSON response
+remains valid.
 
 Return ONLY valid JSON matching this schema:
 
@@ -348,13 +342,7 @@ Return ONLY valid JSON matching this schema:
       "category": "JD Technical",
       "difficulty": "{exp_tier}",
       "question": "Question text...",
-      "rationale": "Why this question...",
-      "whatToLookFor": [
-        "Point 1",
-        "Point 2",
-        "Point 3"
-      ],
-      "followUpProbe": "Follow-up question..."
+            "answer": "Expected answer..."
     }}
   ]
 }}
@@ -401,6 +389,7 @@ Candidate Resume / Profile:
                 }
             ],
             temperature=0.3,
+            max_tokens=8192,
             response_format={"type": "json_object"}
         )
 
@@ -430,6 +419,19 @@ Candidate Resume / Profile:
         raise RuntimeError(
             f"Groq returned invalid JSON: {e}"
         ) from e
+
+    questions = data.get("questions")
+    if not isinstance(questions, list) or len(questions) < 20:
+        raise RuntimeError("Groq returned fewer than the required 20 interview questions.")
+    if any(
+        not isinstance(question, dict)
+        or not str(question.get("question", "")).strip()
+        or not str(question.get("answer", "")).strip()
+        for question in questions[:20]
+    ):
+        raise RuntimeError("Groq returned an incomplete interview question or answer.")
+
+    data["questions"] = questions[:20]
 
     data["used_model"] = selected_model
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Briefcase, Calendar, FileBarChart, Settings, LogOut, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, Calendar, FileBarChart, Settings, LogOut, Sparkles, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/tw';
 import { useAuth } from '../../context/AuthContext';
@@ -11,7 +11,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -19,6 +19,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     { name: 'New Candidate Match', href: '/upload', icon: Sparkles, isHighlight: true },
     { name: 'Jobs & AI Interview Prep', href: '/jobs', icon: Briefcase },
     { name: 'Settings', href: '#', icon: Settings },
+    ...(user?.role === 'ADMIN' ? [{ name: 'Admin Approvals', href: '/admin', icon: ShieldCheck }] : []),
   ];
 
   return (

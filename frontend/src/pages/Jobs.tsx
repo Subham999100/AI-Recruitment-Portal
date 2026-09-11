@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Briefcase, 
@@ -37,9 +38,12 @@ import { Badge } from '../components/common/Badge';
 import { Card } from '../components/common/Card';
 
 export default function Jobs() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'jobs' | 'generator'>('jobs');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [expandedJobId, setExpandedJobId] = useState<number | null>(null);
+  const [deletingJobId, setDeletingJobId] = useState<number | null>(null);
 
   // Grok API Settings State
   const [grokKey, setGrokKey] = useState<string>('');
@@ -117,7 +121,25 @@ export default function Jobs() {
 
   const handleSelectJob = (job: Job) => {
     setSelectedJobId(job.id);
-    setActiveTab('generator');
+    navigate('/candidates');
+  };
+
+  const handleDeleteJob = async (job: Job) => {
+    const confirmed = window.confirm(
+      `Delete "${job.title}"? This will also remove its stored candidate matches.`
+    );
+    if (!confirmed) return;
+
+    setDeletingJobId(job.id);
+    try {
+      await candidateService.deleteJob(job.id);
+      setJobs((currentJobs) => currentJobs.filter((currentJob) => currentJob.id !== job.id));
+      if (expandedJobId === job.id) setExpandedJobId(null);
+    } catch (error) {
+      setGenerationError('Unable to delete this job description. Please try again.');
+    } finally {
+      setDeletingJobId(null);
+    }
   };
 
   const getCurrentJobDetails = () => {
@@ -248,7 +270,7 @@ Follow-up Probe: ${q.followUpProbe}
             Jobs & AI Interview Kits
           </h1>
           <p className="text-gray-300 text-sm leading-relaxed">
-            Manage open positions and generate tailored interview questions calibrated directly against the candidate's resume, job description, and years of experience using Grok's high-speed inference.
+            Manage open positions and review candidates matched to each job. Generate interview questions from the candidate details page.
           </p>
         </div>
 
@@ -265,17 +287,6 @@ Follow-up Probe: ${q.followUpProbe}
             <Briefcase className="w-4 h-4" />
             Active Openings
           </button>
-          <button
-            onClick={() => setActiveTab('generator')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
-              activeTab === 'generator' 
-                ? 'bg-gradient-to-r from-[#9333ea] to-[#c084fc] text-white shadow-[0_0_20px_rgba(168,85,247,0.4)]' 
-                : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-purple-200" />
-            AI Question Generator
-          </button>
         </div>
       </div>
 
@@ -289,11 +300,11 @@ Follow-up Probe: ${q.followUpProbe}
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-white">Current Job Openings</h2>
-              <p className="text-sm text-gray-400">Select any position to generate candidate-specific interview kits</p>
+              <p className="text-sm text-gray-400">Select a position to review its matched candidates</p>
             </div>
-            <Button onClick={() => setActiveTab('generator')} className="gap-2">
-              <Sparkles className="w-4 h-4" />
-              Generate Interview Kit
+            <Button onClick={() => navigate('/candidates')} className="gap-2">
+              <Users className="w-4 h-4" />
+              Review Candidates
             </Button>
           </div>
 
@@ -316,9 +327,20 @@ Follow-up Probe: ${q.followUpProbe}
                     </div>
                   </div>
 
-                  <p className="text-xs text-gray-300 line-clamp-3 leading-relaxed">
-                    {job.description}
-                  </p>
+                  <div className="space-y-1">
+                    <p className={`text-xs text-gray-300 leading-relaxed ${expandedJobId === job.id ? '' : 'line-clamp-3'}`}>
+                      {job.description}
+                    </p>
+                    {job.description && job.description.length > 180 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}
+                        className="text-xs font-semibold text-[#c084fc] hover:text-white"
+                      >
+                        {expandedJobId === job.id ? 'Less' : 'More'}
+                      </button>
+                    )}
+                  </div>
 
                   <div className="space-y-1.5 pt-2 border-t border-white/10">
                     <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Required Skills</p>
@@ -332,20 +354,32 @@ Follow-up Probe: ${q.followUpProbe}
                   </div>
                 </div>
 
-                <div className="px-6 py-4 bg-white/[0.02] border-t border-white/10 flex items-center justify-between">
+                <div className="px-6 py-4 bg-white/[0.02] border-t border-white/10 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-xs text-gray-400">
                     <Users className="w-4 h-4 text-gray-400" />
                     <span className="font-semibold text-white">{job.candidateCount}</span> candidates
                   </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleSelectJob(job)}
-                    className="group-hover:border-purple-500 group-hover:text-purple-200 transition-all gap-1.5"
-                  >
-                    <span>Generate Questions</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      title="Delete job description"
+                      aria-label={`Delete ${job.title}`}
+                      onClick={() => handleDeleteJob(job)}
+                      isLoading={deletingJobId === job.id}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSelectJob(job)}
+                      className="group-hover:border-purple-500 group-hover:text-purple-200 transition-all gap-1.5"
+                    >
+                      <span>Review Candidates</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             ))}

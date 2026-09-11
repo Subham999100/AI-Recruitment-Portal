@@ -39,4 +39,19 @@ export const interviewService = {
       throw new Error(getApiErrorMessage(error, 'Groq interview generation failed.'));
     }
   },
+
+  generateCandidateInterviewKit: async (candidateId: number): Promise<InterviewKit> => {
+    try {
+      const response = await api.post(`/candidates/${candidateId}/interview/generate`);
+      const data = response.data.data;
+      return {
+        ...data,
+        generatedAt: new Date().toLocaleString(),
+        source: 'groq-llm',
+        model: data.used_model || DEFAULT_GROQ_MODEL,
+      };
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Interview question generation failed.'));
+    }
+  },
 };

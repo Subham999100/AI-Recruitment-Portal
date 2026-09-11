@@ -9,6 +9,14 @@ export const api = axios.create({
   },
 });
 
+api.interceptors.request.use(async (config) => {
+  const token = localStorage.getItem('portal_access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const getApiErrorMessage = (error: unknown, fallback: string) => {
   if (axios.isAxiosError(error)) {
     const detail = error.response?.data?.detail;

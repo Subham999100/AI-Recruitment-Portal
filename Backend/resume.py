@@ -46,7 +46,7 @@ def extract_resume_metadata(text):
     return skills, experience, summary
 
 
-def process_resume(file):
+def process_resume(file, owner_id):
     """
     Process one resume and save it to the database.
     """
@@ -86,8 +86,9 @@ def process_resume(file):
     cursor.execute(
         """
         INSERT INTO candidates
-        (name, email, resume_filename, resume_text, embedding, skills, experience, summary, uploaded_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        (name, email, resume_filename, resume_text, embedding, skills, experience, summary, uploaded_at, owner_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+        RETURNING id
         """,
         (
             name,
@@ -98,10 +99,11 @@ def process_resume(file):
             json.dumps(skills),
             experience,
             summary,
+            owner_id,
         )
     )
 
-    candidate_id = cursor.lastrowid
+    candidate_id = cursor.fetchone()["id"]
 
     connection.commit()
     connection.close()

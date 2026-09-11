@@ -20,5 +20,8 @@ uploads/resumes/
 node-dist/
 node.zip
 *.zip
-.firebase/
+
+# Render and deployment-local files
+.render/
+render.env
 

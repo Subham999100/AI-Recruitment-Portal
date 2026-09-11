@@ -12,6 +12,7 @@ import CandidateProfile from './pages/CandidateProfile';
 import UploadMatch from './pages/UploadMatch';
 import Jobs from './pages/Jobs';
 import AppLayout from './components/layout/AppLayout';
+import Admin from './pages/Admin';
 
 function App() {
   return (
@@ -28,6 +29,10 @@ function App() {
             <Route path="/candidates/:id" element={<CandidateProfile />} />
             <Route path="/jobs" element={<Jobs />} />
             <Route path="/upload" element={<UploadMatch />} />
+          </Route>
+
+          <Route element={<ProtectedRoute requiredRole="ADMIN"><AppLayout /></ProtectedRoute>}>
+            <Route path="/admin" element={<Admin />} />
           </Route>
           
           <Route path="*" element={<Navigate to="/" replace />} />

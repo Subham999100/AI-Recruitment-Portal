@@ -1,8 +1,9 @@
 export interface User {
-  id: number;
+  id: string | number;
   name: string;
   email: string;
   role: string;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
   avatar?: string;
 }
 
@@ -66,6 +67,7 @@ export interface InterviewQuestion {
   category: 'JD Technical' | 'Resume Deep-Dive' | 'Experience & Architecture' | 'Behavioral & Leadership';
   difficulty: 'Junior (0-2 Yrs)' | 'Mid-Level (3-5 Yrs)' | 'Senior (5-8 Yrs)' | 'Lead / Architect (8+ Yrs)';
   question: string;
+  answer: string;
   rationale: string;
   whatToLookFor: string[];
   followUpProbe: string;
