@@ -17,7 +17,7 @@ pip install -r requirements.txt
 
 Create a `.env` file in the project root:
 
-OPENAI_API_KEY=your_openai_api_key
+GEMINI_API_KEY=your_gemini_api_key
 GROQ_API_KEY=your_groq_api_key
 
 Never commit `.env` to GitHub.
@@ -45,4 +45,4 @@ npm install
 npm run dev
 ```
 
-The frontend will start at: `http://localhost:5173`
+The frontend will start at: `http://localhost:5173`
