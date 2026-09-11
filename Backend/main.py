@@ -21,6 +21,11 @@ from Backend.auth import (
     get_current_user,
 )
 from Backend.interview import generate_interview_questions
+from Backend.candidate import (
+    get_user_candidates,
+    get_candidate,
+    delete_candidate,
+)
 
 app = FastAPI(
     title="AI Recruitment Portal API"
@@ -265,3 +270,38 @@ def generate_candidate_interview(
         raise HTTPException(status_code=404, detail=str(error))
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
+# -------------------------
+# Candidates
+# -------------------------
+
+@app.get("/candidates")
+def list_candidates(
+    current_user=Depends(get_logged_in_user)
+):
+    return {
+        "candidates": get_user_candidates(
+            current_user["id"]
+        )
+    }
+
+
+@app.get("/candidates/{candidate_id}")
+def get_candidate_by_id(
+    candidate_id: int,
+    current_user=Depends(get_logged_in_user)
+):
+    return get_candidate(
+        candidate_id,
+        current_user["id"]
+    )
+
+
+@app.delete("/candidates/{candidate_id}")
+def remove_candidate(
+    candidate_id: int,
+    current_user=Depends(get_logged_in_user)
+):
+    return delete_candidate(
+        candidate_id,
+        current_user["id"]
+    )
