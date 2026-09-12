@@ -1,5 +1,6 @@
 import os
 import re
+import uuid
 
 from Backend.database import get_db_connection
 from Backend.embeddings import create_embedding
@@ -8,9 +9,15 @@ from Backend.pdf_parser import extract_text_from_pdf
 
 UPLOAD_FOLDER = "uploads/resumes"
 
+MAX_RESUME_SIZE = 10 * 1024 * 1024  # 10 MB
+
 
 def extract_candidate_info(text):
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    lines = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip()
+    ]
 
     name = lines[0] if lines else "Unknown"
 
@@ -27,53 +34,123 @@ def extract_candidate_info(text):
 def process_resume(file, user_id):
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-    filename = os.path.basename(file.filename)
+    # -------------------------
+    # Validate filename
+    # -------------------------
 
-    if not filename.lower().endswith(".pdf"):
+    original_filename = os.path.basename(
+        file.filename or ""
+    )
+
+    if not original_filename:
+        raise ValueError("Filename is missing")
+
+    if not original_filename.lower().endswith(".pdf"):
         raise ValueError("File is not a PDF")
 
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
+
+    # -------------------------
+    # Read uploaded file
+    # -------------------------
+
+    file_content = file.file.read()
+
+    if not file_content:
+        raise ValueError("Uploaded file is empty")
+
+    if len(file_content) > MAX_RESUME_SIZE:
+        raise ValueError("Resume file is too large. Maximum size is 10 MB")
+
+
+    # -------------------------
+    # Validate PDF signature
+    # -------------------------
+
+    if not file_content.startswith(b"%PDF"):
+        raise ValueError("Uploaded file is not a valid PDF")
+
+
+    # -------------------------
+    # Generate unique filename
+    # -------------------------
+
+    stored_filename = f"{uuid.uuid4()}.pdf"
+
+    file_path = os.path.join(
+        UPLOAD_FOLDER,
+        stored_filename
+    )
+
+
+    # -------------------------
+    # Save resume
+    # -------------------------
 
     with open(file_path, "wb") as output_file:
-        output_file.write(file.file.read())
+        output_file.write(file_content)
+
+
+    # -------------------------
+    # Extract resume text
+    # -------------------------
 
     resume_text = extract_text_from_pdf(file_path)
 
     if not resume_text:
         raise ValueError("Could not extract text from PDF")
 
-    name, email = extract_candidate_info(resume_text)
 
-    embedding = create_embedding(resume_text)
+    # -------------------------
+    # Extract candidate info
+    # -------------------------
 
-    connection = get_db_connection()
-    cursor = connection.cursor()
-
-    cursor.execute(
-        """
-        INSERT INTO candidates
-        (user_id, name, email, resume_filename, resume_text, embedding)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        RETURNING id
-        """,
-        (
-            user_id,
-            name,
-            email,
-            filename,
-            resume_text,
-            embedding
-        )
+    name, email = extract_candidate_info(
+        resume_text
     )
 
-    candidate_id = cursor.fetchone()["id"]
 
-    connection.commit()
+    # -------------------------
+    # Create embedding
+    # -------------------------
 
-    cursor.close()
-    connection.close()
+    embedding = create_embedding(
+        resume_text
+    )
+
+
+    # -------------------------
+    # Save candidate to database
+    # -------------------------
+
+    with get_db_connection() as connection:
+        candidate = connection.execute(
+            """
+            INSERT INTO candidates
+            (
+                user_id,
+                name,
+                email,
+                resume_filename,
+                resume_text,
+                embedding
+            )
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (
+                user_id,
+                name,
+                email,
+                original_filename,
+                resume_text,
+                embedding
+            )
+        ).fetchone()
+
+        connection.commit()
+
 
     return {
-        "candidate_id": candidate_id,
-        "filename": filename
+        "candidate_id": candidate["id"],
+        "filename": original_filename
     }

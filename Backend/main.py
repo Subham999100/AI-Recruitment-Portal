@@ -1,4 +1,6 @@
 import os
+from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from fastapi import (
     FastAPI,
@@ -7,50 +9,50 @@ from fastapi import (
     HTTPException,
     Depends,
 )
-from fastapi.middleware.cors import CORSMiddleware
+
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+
+from Backend.database import close_db_pool
 
 from Backend.resume import process_resume
 from Backend.job import create_job
 from Backend.matching import get_top_candidates
+
 from Backend.auth import (
     create_users_table,
     register_user,
     login_user,
     get_current_user,
 )
+
 from Backend.interview import generate_interview_questions
+
 from Backend.candidate import (
     get_user_candidates,
     get_candidate,
     delete_candidate,
 )
 
-app = FastAPI(
-    title="AI Recruitment Portal API"
-)
-
 
 # -------------------------
-# Startup
+# Application Lifespan
 # -------------------------
 
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     create_users_table()
 
+    yield
 
-# -------------------------
-# CORS
-# -------------------------
+    # Shutdown
+    close_db_pool()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+
+app = FastAPI(
+    title="AI Recruitment Portal API",
+    lifespan=lifespan,
 )
 
 
@@ -66,10 +68,11 @@ def get_logged_in_user(
 ):
     try:
         return get_current_user(credentials.credentials)
+
     except ValueError as error:
         raise HTTPException(
             status_code=401,
-            detail=str(error)
+            detail=str(error),
         )
 
 
@@ -101,7 +104,7 @@ class LoginRequest(BaseModel):
 def home():
     return {
         "message": "AI Recruitment Portal Backend is running",
-        "groq_configured": bool(os.getenv("GROQ_API_KEY"))
+        "groq_configured": bool(os.getenv("GROQ_API_KEY")),
     }
 
 
@@ -123,7 +126,7 @@ def groq_status():
     return {
         "configured": api_key_set,
         "masked_key": masked_key,
-        "model": "openai/gpt-oss-20b"
+        "model": "openai/gpt-oss-20b",
     }
 
 
@@ -137,18 +140,18 @@ def register(request: RegisterRequest):
         user = register_user(
             request.name,
             request.email,
-            request.password
+            request.password,
         )
 
         return {
             "message": "User registered successfully",
-            **user
+            **user,
         }
 
     except ValueError as error:
         raise HTTPException(
             status_code=400,
-            detail=str(error)
+            detail=str(error),
         )
 
 
@@ -157,18 +160,18 @@ def login(request: LoginRequest):
     try:
         user = login_user(
             request.email,
-            request.password
+            request.password,
         )
 
         return {
             "message": "Login successful",
-            **user
+            **user,
         }
 
     except ValueError as error:
         raise HTTPException(
             status_code=401,
-            detail=str(error)
+            detail=str(error),
         )
 
 
@@ -179,30 +182,59 @@ def login(request: LoginRequest):
 @app.post("/resumes/upload")
 async def upload_resumes(
     files: list[UploadFile] = File(...),
-    current_user=Depends(get_logged_in_user)
+    current_user=Depends(get_logged_in_user),
 ):
     successful = []
     failed = []
 
-    for file in files:
+    user_id = current_user["id"]
+
+    def process_single_resume(file):
         try:
             result = process_resume(
                 file,
-                current_user["id"]
+                user_id,
             )
 
-            successful.append(result)
+            return {
+                "success": True,
+                "result": result,
+                "filename": file.filename,
+            }
 
         except Exception as error:
-            failed.append({
+            return {
+                "success": False,
                 "filename": file.filename,
-                "error": str(error)
-            })
+                "error": str(error),
+            }
+
+    # Process at most 5 resumes concurrently
+    with ThreadPoolExecutor(max_workers=5) as executor:
+
+        futures = [
+            executor.submit(process_single_resume, file)
+            for file in files
+        ]
+
+        for future in as_completed(futures):
+            result = future.result()
+
+            if result["success"]:
+                successful.append(
+                    result["result"]
+                )
+
+            else:
+                failed.append({
+                    "filename": result["filename"],
+                    "error": result["error"],
+                })
 
     return {
         "total_uploaded": len(files),
         "successful_resumes": successful,
-        "failed_resumes": failed
+        "failed_resumes": failed,
     }
 
 
@@ -213,19 +245,19 @@ async def upload_resumes(
 @app.post("/jobs")
 def create_new_job(
     job: JobRequest,
-    current_user=Depends(get_logged_in_user)
+    current_user=Depends(get_logged_in_user),
 ):
     try:
         return create_job(
             job.title,
             job.description,
-            current_user["id"]
+            current_user["id"],
         )
 
     except Exception as error:
         raise HTTPException(
             status_code=400,
-            detail=str(error)
+            detail=str(error),
         )
 
 
@@ -236,72 +268,88 @@ def create_new_job(
 @app.get("/matching/{job_id}")
 def match_candidates(
     job_id: int,
-    current_user=Depends(get_logged_in_user)
+    current_user=Depends(get_logged_in_user),
 ):
     try:
         matches = get_top_candidates(
             job_id,
-            current_user["id"]
+            current_user["id"],
         )
 
         return {
             "job_id": job_id,
-            "matches": matches
+            "matches": matches,
         }
 
     except ValueError as error:
         raise HTTPException(
             status_code=404,
-            detail=str(error)
+            detail=str(error),
         )
+
+
+# -------------------------
+# Interview Questions
+# -------------------------
+
 @app.post("/interview/{job_id}/{candidate_id}")
 def generate_candidate_interview(
     job_id: int,
     candidate_id: int,
-    current_user=Depends(get_logged_in_user)
+    current_user=Depends(get_logged_in_user),
 ):
     try:
         return generate_interview_questions(
             job_id,
             candidate_id,
-            current_user["id"]
+            current_user["id"],
         )
+
     except ValueError as error:
-        raise HTTPException(status_code=404, detail=str(error))
+        raise HTTPException(
+            status_code=404,
+            detail=str(error),
+        )
+
     except Exception as error:
-        raise HTTPException(status_code=500, detail=str(error))
+        raise HTTPException(
+            status_code=500,
+            detail=str(error),
+        )
+
+
 # -------------------------
 # Candidates
 # -------------------------
 
 @app.get("/candidates")
 def list_candidates(
-    current_user=Depends(get_logged_in_user)
+    current_user=Depends(get_logged_in_user),
 ):
     return {
         "candidates": get_user_candidates(
-            current_user["id"]
-        )
+            current_user["id"],
+        ),
     }
 
 
 @app.get("/candidates/{candidate_id}")
 def get_candidate_by_id(
     candidate_id: int,
-    current_user=Depends(get_logged_in_user)
+    current_user=Depends(get_logged_in_user),
 ):
     return get_candidate(
         candidate_id,
-        current_user["id"]
+        current_user["id"],
     )
 
 
 @app.delete("/candidates/{candidate_id}")
 def remove_candidate(
     candidate_id: int,
-    current_user=Depends(get_logged_in_user)
+    current_user=Depends(get_logged_in_user),
 ):
     return delete_candidate(
         candidate_id,
-        current_user["id"]
+        current_user["id"],
     )

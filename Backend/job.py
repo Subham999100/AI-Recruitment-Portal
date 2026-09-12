@@ -13,32 +13,28 @@ def create_job(title, description, user_id):
     skills = analysis["skills"]
     keywords = analysis["keywords"]
 
-    connection = get_db_connection()
-    cursor = connection.cursor()
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        INSERT INTO jobs
-        (user_id, title, description, embedding, skills, keywords)
-        VALUES (%s, %s, %s, %s, %s, %s)
-        RETURNING id
-        """,
-        (
-            user_id,
-            title,
-            description,
-            embedding,
-            Jsonb(skills),
-            Jsonb(keywords)
+        cursor.execute(
+            """
+            INSERT INTO jobs
+            (user_id, title, description, embedding, skills, keywords)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (
+                user_id,
+                title,
+                description,
+                embedding,
+                Jsonb(skills),
+                Jsonb(keywords)
+            )
         )
-    )
 
-    job_id = cursor.fetchone()["id"]
-
-    connection.commit()
-
-    cursor.close()
-    connection.close()
+        job_id = cursor.fetchone()["id"]
+        connection.commit()
 
     return {
         "job_id": job_id,

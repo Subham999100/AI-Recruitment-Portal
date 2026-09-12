@@ -6,7 +6,10 @@ from jose import JWTError, jwt
 from Backend.database import get_db_connection
 
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-secret-change-this")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+
+if not SECRET_KEY:
+    raise ValueError("JWT_SECRET_KEY is missing from .env")
 ALGORITHM = "HS256"
 
 
@@ -15,24 +18,22 @@ ALGORITHM = "HS256"
 # -------------------------
 
 def create_users_table():
-    connection = get_db_connection()
-    cursor = connection.cursor()
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            email VARCHAR(255) UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
         )
-        """
-    )
 
-    connection.commit()
-    cursor.close()
-    connection.close()
+        connection.commit()
 
 
 # -------------------------
@@ -40,40 +41,36 @@ def create_users_table():
 # -------------------------
 
 def register_user(name: str, email: str, password: str):
-    connection = get_db_connection()
-    cursor = connection.cursor()
-
     email = email.strip().lower()
 
-    cursor.execute(
-        "SELECT id FROM users WHERE email = %s",
-        (email,)
-    )
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
 
-    if cursor.fetchone():
-        cursor.close()
-        connection.close()
-        raise ValueError("Email already registered")
+        cursor.execute(
+            "SELECT id FROM users WHERE email = %s",
+            (email,)
+        )
 
-    password_hash = bcrypt.hashpw(
-        password.encode("utf-8"),
-        bcrypt.gensalt()
-    ).decode("utf-8")
+        if cursor.fetchone():
+            raise ValueError("Email already registered")
 
-    cursor.execute(
-        """
-        INSERT INTO users (name, email, password_hash)
-        VALUES (%s, %s, %s)
-        RETURNING id
-        """,
-        (name, email, password_hash)
-    )
+        password_hash = bcrypt.hashpw(
+            password.encode("utf-8"),
+            bcrypt.gensalt()
+        ).decode("utf-8")
 
-    user_id = cursor.fetchone()["id"]
+        cursor.execute(
+            """
+            INSERT INTO users (name, email, password_hash)
+            VALUES (%s, %s, %s)
+            RETURNING id
+            """,
+            (name, email, password_hash)
+        )
 
-    connection.commit()
-    cursor.close()
-    connection.close()
+        user_id = cursor.fetchone()["id"]
+
+        connection.commit()
 
     return {
         "user_id": user_id,
@@ -87,24 +84,21 @@ def register_user(name: str, email: str, password: str):
 # -------------------------
 
 def login_user(email: str, password: str):
-    connection = get_db_connection()
-    cursor = connection.cursor()
-
     email = email.strip().lower()
 
-    cursor.execute(
-        """
-        SELECT id, name, email, password_hash
-        FROM users
-        WHERE email = %s
-        """,
-        (email,)
-    )
+    with get_db_connection() as connection:
+        cursor = connection.cursor()
 
-    user = cursor.fetchone()
+        cursor.execute(
+            """
+            SELECT id, name, email, password_hash
+            FROM users
+            WHERE email = %s
+            """,
+            (email,)
+        )
 
-    cursor.close()
-    connection.close()
+        user = cursor.fetchone()
 
     if not user:
         raise ValueError("Invalid email or password")
@@ -132,8 +126,7 @@ def login_user(email: str, password: str):
         "user_id": user["id"],
         "name": user["name"],
         "email": user["email"]
-    }
-
+    }   
 
 # -------------------------
 # Get Current User
@@ -152,22 +145,19 @@ def get_current_user(token: str):
         if user_id is None:
             raise ValueError("Invalid token")
 
-        connection = get_db_connection()
-        cursor = connection.cursor()
+        with get_db_connection() as connection:
+            cursor = connection.cursor()
 
-        cursor.execute(
-            """
-            SELECT id, name, email
-            FROM users
-            WHERE id = %s
-            """,
-            (user_id,)
-        )
+            cursor.execute(
+                """
+                SELECT id, name, email
+                FROM users
+                WHERE id = %s
+                """,
+                (user_id,)
+            )
 
-        user = cursor.fetchone()
-
-        cursor.close()
-        connection.close()
+            user = cursor.fetchone()
 
         if not user:
             raise ValueError("User not found")

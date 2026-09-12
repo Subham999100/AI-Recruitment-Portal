@@ -3,9 +3,7 @@ from Backend.database import get_db_connection
 
 
 def get_user_candidates(user_id):
-    connection = get_db_connection()
-
-    try:
+    with get_db_connection() as connection:
         candidates = connection.execute(
             """
             SELECT
@@ -23,14 +21,9 @@ def get_user_candidates(user_id):
 
         return candidates
 
-    finally:
-        connection.close()
-
 
 def get_candidate(candidate_id, user_id):
-    connection = get_db_connection()
-
-    try:
+    with get_db_connection() as connection:
         candidate = connection.execute(
             """
             SELECT
@@ -55,14 +48,9 @@ def get_candidate(candidate_id, user_id):
 
         return candidate
 
-    finally:
-        connection.close()
-
 
 def delete_candidate(candidate_id, user_id):
-    connection = get_db_connection()
-
-    try:
+    with get_db_connection() as connection:
         result = connection.execute(
             """
             DELETE FROM candidates
@@ -85,6 +73,3 @@ def delete_candidate(candidate_id, user_id):
             "message": "Candidate deleted successfully",
             "candidate_id": candidate_id
         }
-
-    finally:
-        connection.close()
